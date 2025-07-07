@@ -85,6 +85,8 @@ jobs:
       - name: Run Aggregation Script
         env:
           GITHUB_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
         run: python scripts/aggregate_reviews.py
 
       - name: Commit results
