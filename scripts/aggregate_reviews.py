@@ -13,6 +13,8 @@ TOOL_IDENTIFIERS = {
     'Codacy': 'codacy-bot',
     'GitHub Copilot': 'github-actions[bot]'
 }
+print("testa")
+
 TOOLS = list(TOOL_IDENTIFIERS.keys())
 KNOWN_BOT_IDS = set(TOOL_IDENTIFIERS.values())
 
