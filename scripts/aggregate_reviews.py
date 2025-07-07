@@ -14,6 +14,7 @@ TOOL_IDENTIFIERS = {
     'GitHub Copilot': 'github-actions[bot]'
 }
 TOOLS = list(TOOL_IDENTIFIERS.keys())
+KNOWN_BOT_IDS = set(TOOL_IDENTIFIERS.values())
 
 def categorize_comment(comment_text):
     """Assigns a category based on keywords. This is a simple heuristic."""
@@ -28,6 +29,7 @@ def categorize_comment(comment_text):
 
 # --- Main Logic ---
 def run_aggregation():
+    unrecognized_authors = set()
     # 1. Fetch comments from GitHub API
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
     url = f"https://api.github.com/repos/{REPO_NAME}/pulls/{PR_NUMBER}/comments"
@@ -44,10 +46,16 @@ def run_aggregation():
     findings_map = defaultdict(list)
     for comment in comments:
         author = comment.get('user', {}).get('login')
+        if not author:
+            continue
         file_path = comment.get('path')
         line = comment.get('line')
 
         current_tool = next((name for name, id in TOOL_IDENTIFIERS.items() if id == author), None)
+        if not current_tool:.
+            if '[bot]' in author and author not in KNOWN_BOT_IDS:
+                unrecognized_authors.add(author)
+            continue
         if not all([current_tool, file_path, line]):
             continue
 
