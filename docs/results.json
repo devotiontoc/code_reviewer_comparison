@@ -4,11 +4,15 @@
     "pr_number": "3",
     "tool_names": [
       "CodeRabbit",
-      "BitoAI"
+      "BitoAI",
+      "Codacy",
+      "GitHub Copilot"
     ]
   },
   "summary_charts": {
     "findings_by_tool": [
+      0,
+      0,
       0,
       0
     ],
