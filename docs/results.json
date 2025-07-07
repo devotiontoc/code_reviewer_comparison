@@ -1,0 +1,21 @@
+{
+  "metadata": {
+    "repo": "devotiontoc/code_reviewer_comparison",
+    "pr_number": "3",
+    "tool_names": [
+      "CodeRabbit",
+      "BitoAI"
+    ]
+  },
+  "summary_charts": {
+    "findings_by_tool": [
+      0,
+      0
+    ],
+    "findings_by_category": {
+      "labels": [],
+      "data": []
+    }
+  },
+  "findings": []
+}
