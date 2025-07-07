@@ -3,15 +3,20 @@ import json
 import requests
 from collections import defaultdict
 
-GITHUB_TOKEN = os.environ.get("GIT_ACCESS_TOKEN")
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = os.environ.get("GITHUB_REPOSITORY")
 PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
-print("hello")
+
 TOOL_IDENTIFIERS = {
     'CodeRabbit': 'coderabbitai[bot]',
-    'BitoAI': 'bitoai[bot]'
+    'BitoAI': 'bito-ai-bot',
+    'Codacy': 'codacy-bot',
+    'GitHub Copilot': 'github-actions[bot]',
+    'devotiontoc': 'devotiontoc'
 }
+#test
 TOOLS = list(TOOL_IDENTIFIERS.keys())
+KNOWN_BOT_IDS = set(TOOL_IDENTIFIERS.values())
 
 def categorize_comment(comment_text):
     """Assigns a category based on keywords. This is a simple heuristic."""
@@ -26,6 +31,7 @@ def categorize_comment(comment_text):
 
 # --- Main Logic ---
 def run_aggregation():
+    unrecognized_authors = set()
     # 1. Fetch comments from GitHub API
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
     url = f"https://api.github.com/repos/{REPO_NAME}/pulls/{PR_NUMBER}/comments"
@@ -34,22 +40,43 @@ def run_aggregation():
         response.raise_for_status()
         comments = response.json()
         print(f"Successfully fetched {len(comments)} review comments.")
+
+
     except requests.exceptions.RequestException as e:
         print(f"Error fetching comments: {e}")
         return
-
+    print("\n--- Raw Comment Data ---")
+    for i, comment in enumerate(comments):
+        author = comment.get('user', {}).get('login')
+        body = comment.get('body', '').replace('\n', ' ')[:100] # First 100 chars
+        path = comment.get('path')
+        line = comment.get('line')
+        print(f"Comment #{i+1}: Author='{author}', Path='{path}', Line='{line}', Body='{body}...'")
+    print("------------------------\n")
     # 2. Group comments by location (file:line)
     findings_map = defaultdict(list)
     for comment in comments:
         author = comment.get('user', {}).get('login')
+        if not author:
+            continue
         file_path = comment.get('path')
         line = comment.get('line')
 
         current_tool = next((name for name, id in TOOL_IDENTIFIERS.items() if id == author), None)
+        if not current_tool:
+            if '[bot]' in author and author not in KNOWN_BOT_IDS:
+                unrecognized_authors.add(author)
+            continue
         if not all([current_tool, file_path, line]):
             continue
 
-        finding_key = f"{file_path}:{line}"
+        finding_key = ""
+        if file_path:
+            # Group by file and line, or by file and "general" if line is None
+            finding_key = f"{file_path}:{line or 'general'}"
+        else:
+            # For comments not tied to any file
+            finding_key = "General PR Comments"
         findings_map[finding_key].append({
             "tool": current_tool,
             "comment": comment.get('body', '')
@@ -91,7 +118,12 @@ def run_aggregation():
         },
         "findings": processed_findings
     }
-
+    if unrecognized_authors:
+        print("\n--- Found Unrecognized Bot Authors ---")
+        print("Consider adding these to the TOOL_IDENTIFIERS dictionary in your script:")
+        for author in unrecognized_authors:
+            print(f"- {author}")
+        print("-------------------------------------\n")
     # 5. Save results to a file
     output_path = 'docs/results.json'
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
