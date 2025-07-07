@@ -11,9 +11,9 @@ TOOL_IDENTIFIERS = {
     'CodeRabbit': 'coderabbitai[bot]',
     'BitoAI': 'bito-ai-bot',
     'Codacy': 'codacy-bot',
-    'GitHub Copilot': 'github-actions[bot]'
+    'GitHub Copilot': 'github-actions[bot]',
+    'devotiontoc': 'devotiontoc'
 }
-print("testa")
 
 TOOLS = list(TOOL_IDENTIFIERS.keys())
 KNOWN_BOT_IDS = set(TOOL_IDENTIFIERS.values())
@@ -70,7 +70,13 @@ def run_aggregation():
         if not all([current_tool, file_path, line]):
             continue
 
-        finding_key = f"{file_path}:{line}"
+        finding_key = ""
+        if file_path:
+            # Group by file and line, or by file and "general" if line is None
+            finding_key = f"{file_path}:{line or 'general'}"
+        else:
+            # For comments not tied to any file
+            finding_key = "General PR Comments"
         findings_map[finding_key].append({
             "tool": current_tool,
             "comment": comment.get('body', '')
