@@ -40,10 +40,19 @@ def run_aggregation():
         response.raise_for_status()
         comments = response.json()
         print(f"Successfully fetched {len(comments)} review comments.")
+
+
     except requests.exceptions.RequestException as e:
         print(f"Error fetching comments: {e}")
         return
-
+    print("\n--- Raw Comment Data ---")
+    for i, comment in enumerate(comments):
+        author = comment.get('user', {}).get('login')
+        body = comment.get('body', '').replace('\n', ' ')[:100] # First 100 chars
+        path = comment.get('path')
+        line = comment.get('line')
+        print(f"Comment #{i+1}: Author='{author}', Path='{path}', Line='{line}', Body='{body}...'")
+    print("------------------------\n")
     # 2. Group comments by location (file:line)
     findings_map = defaultdict(list)
     for comment in comments:
