@@ -58,3 +58,37 @@ jobs:
           pr: ${{ github.event.pull_request.html_url }}
           command: review
           options: ${{ env.OPTIONS }}
+  aggregate:
+    name: Aggregate & Analyze Results
+    needs: [ code_review_job ] # Runs after all reviews are complete
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Pull Request Number
+        id: get_pr
+        run: echo "PULL_REQUEST_NUMBER=$(jq --raw-output .number "$GITHUB_EVENT_PATH")" >> "$GITHUB_ENV"
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: python -m pip install requests
+
+      - name: Run Aggregation Script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}
+        run: python aggregate_reviews.py
+
+      - name: Commit results
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(ci): update aggregated code review findings"
+          file_pattern: "docs/results.json"

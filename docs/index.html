@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+</head>
+<body>
+<header>
+    <h1>Automated Code Review Dashboard</h1>
+    <p>A dynamic aggregation of findings from multiple AI code review tools on any pull request.</p>
+</header>
+
+<main>
+    <div class="charts-grid">
+        <section class="chart-container">
+            <h2>Total Findings by Tool</h2>
+            <canvas id="findingsByToolChart"></canvas>
+        </section>
+        <section class="chart-container">
+            <h2>Findings by Category</h2>
+            <canvas id="findingsByCategoryChart"></canvas>
+        </section>
+    </div>
+
+    <section id="detailed-findings">
+        <h2>Consolidated Findings</h2>
+    </section>
+</main>
+</body>
+</html>
