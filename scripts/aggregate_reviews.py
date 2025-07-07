@@ -3,7 +3,7 @@ import json
 import requests
 from collections import defaultdict
 
-GITHUB_TOKEN = os.environ.get("GIT_TOKEN")
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = os.environ.get("GITHUB_REPOSITORY")
 PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
 print("GITHUB_TOKEN: "+GITHUB_TOKEN)
