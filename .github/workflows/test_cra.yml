@@ -94,3 +94,8 @@ jobs:
         with:
           commit_message: "chore(ci): update aggregated code review findings"
           file_pattern: "docs/results.json"
+
+
+      - name: Trigger Netlify Deployment
+        if: success()
+        run: curl -X POST -d {} ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
