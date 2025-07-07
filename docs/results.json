@@ -12,20 +12,18 @@
   },
   "summary_charts": {
     "findings_by_tool": [
-      3,
+      2,
       0,
       0,
       0,
-      0
+      1
     ],
     "findings_by_category": {
       "labels": [
         "Style / Best Practice"
       ],
       "data": [
-
         3
-
       ]
     }
   },
@@ -49,15 +47,14 @@
           "comment": "_\u26a0\ufe0f Potential issue_\n\n**Inconsistent secret names \u2013 aggregation job will likely fail**  \n\n`code_review_job` embeds `secrets.GIT_ACCESS_TOKEN` into `OPTIONS`, while the `aggregate` job expects `secrets.GIT_TOKEN`. If `GIT_TOKEN` is not defined, the aggregation step will exit with a non-zero status due to missing credentials. Align both jobs on a single secret name (or rely on the default `GITHUB_TOKEN` when possible).\n\n```diff\n-          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}\n+          # Re-use the same PAT that the review job relies on\n+          GITHUB_TOKEN: ${{ secrets.GIT_ACCESS_TOKEN }}\n```\n\n\n\nAlso applies to: 86-90\n\n<details>\n<summary>\ud83e\udd16 Prompt for AI Agents</summary>\n\n```\nIn .github/workflows/test_cra.yml around lines 44 to 45 and also lines 86 to 90,\nthe secret names used for Git authentication are inconsistent between jobs, with\none using secrets.GIT_ACCESS_TOKEN and the other secrets.GIT_TOKEN. To fix this,\nstandardize the secret name across all jobs by choosing either GIT_ACCESS_TOKEN\nor GIT_TOKEN, or preferably use the default GITHUB_TOKEN if suitable. Update all\nreferences in the workflow file to use the chosen secret name to ensure the\naggregation job does not fail due to missing credentials.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n<!-- fingerprinting:phantom:triton:cougar -->"
         }
       ]
-
     },
     {
-      "location": "docs/results.json:51",
+      "location": "scripts/aggregate_reviews.py:6",
       "category": "Style / Best Practice",
       "reviews": [
         {
-          "tool": "CodeRabbit",
-          "comment": "_\ud83d\udee0\ufe0f Refactor suggestion_\n\n**Generated artefact should not be version-controlled**\n\n`docs/results.json` is clearly the runtime output of the aggregation script. Keeping large, ever-changing result files under VCS:\n\n* inflates repository size and history noise,\n* causes constant merge conflicts on parallel PRs,\n* mixes build artefacts with source code, breaking the clean-repo principle.\n\nMove this file to the CI artefacts or publish it via `upload-artifact`, and add a `.gitignore` rule (e.g. `docs/*.json`) so future runs don\u2019t commit it again.\n\n<details>\n<summary>\ud83e\udd16 Prompt for AI Agents</summary>\n\n```\nIn docs/results.json lines 1 to 51, the file is a generated runtime output and\nshould not be committed to version control as it inflates repo size, causes\nmerge conflicts, and mixes build artifacts with source code. To fix this, remove\ndocs/results.json from the repository, add a .gitignore rule to exclude\ndocs/*.json files, and configure the CI pipeline to save this file as an\nartifact or publish it via upload-artifact instead of committing it.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n<!-- fingerprinting:phantom:triton:cougar -->"
+          "tool": "devotiontoc",
+          "comment": "\n<div>\n\n\n<div id=\"suggestion\">\n<div id=\"issue\"><b>Environment variable name changed without migration strategy</b></div>\n<div id=\"fix\">\n\nEnvironment variable name changed from `GIT_ACCESS_TOKEN` to `GITHUB_TOKEN`. This could cause runtime failures if deployment environments still use the old variable name.\n</div>\n<details>\n<summary>\n<b>Code suggestion</b>\n</summary>\n<blockquote>Check the AI-generated fix before applying</blockquote>\n<div id=\"code\">\n\n\n```suggestion\nGITHUB_TOKEN = os.environ.get(\"GITHUB_TOKEN\") or os.environ.get(\"GIT_ACCESS_TOKEN\")\n```\n\n</div>\n</details>\n</div>\n\n\n\n<small><i>Code Review Run <a href=https://github.com/devotiontoc/code_reviewer_comparison/pull/3#issuecomment-3045343105>#acbe4a</a></i></small>\n</div>\n\n---\nShould Bito avoid suggestions like this for future reviews? (<a href=https://alpha.bito.ai/home/ai-agents/review-rules>Manage Rules</a>)\n- [ ] Yes, avoid them"
         }
       ]
     }
