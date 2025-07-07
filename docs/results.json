@@ -12,20 +12,22 @@
   },
   "summary_charts": {
     "findings_by_tool": [
-      5,
+      6,
       0,
       0,
       0,
-      1
+      2
     ],
     "findings_by_category": {
       "labels": [
         "Bug",
-        "Security"
+        "Security",
+        "Style / Best Practice"
       ],
       "data": [
         3,
-        2
+        3,
+        1
       ]
     }
   },
@@ -81,6 +83,26 @@
         {
           "tool": "CodeRabbit",
           "comment": "_\u26a0\ufe0f Potential issue_\n\n**Fix comparison operators and implement proper email recipient handling.**\n\nSeveral issues need attention: inconsistent comparison operators, hardcoded email recipient, missing error handling, and potential for alert spam.\n\n\n\n```diff\n router.post('/check/:deviceId', async (req, res) => {\n     const { deviceId } = req.params;\n     const { currentValue } = req.body;\n \n-    const alerts = await Alert.find({ deviceId: deviceId }).exec();\n+    try {\n+        const alerts = await Alert.find({ deviceId: deviceId });\n \n-    for (let i = 0; i < alerts.length; i++) {\n-        const alert = alerts[i];\n-        let triggered = false;\n+        for (const alert of alerts) {\n+            let triggered = false;\n \n-        if (alert.condition === 'greater_than' && currentValue > alert.threshold) {\n-            triggered = true;\n-        } else if (alert.condition == 'equals' && currentValue == alert.threshold) {\n-            triggered = true;\n-        } else if (alert.condition === 'less_than' && currentValue < alert.threshold) {\n-            triggered = true;\n-        }\n+            if (alert.condition === 'greater_than' && currentValue > alert.threshold) {\n+                triggered = true;\n+            } else if (alert.condition === 'equals' && currentValue === alert.threshold) {\n+                triggered = true;\n+            } else if (alert.condition === 'less_than' && currentValue < alert.threshold) {\n+                triggered = true;\n+            }\n \n-        if (triggered) {\n-            console.log(`Alert triggered for device ${deviceId}`);\n+            if (triggered) {\n+                console.log(`Alert triggered for device ${deviceId}`);\n \n-            sendEmail({ to: 'user@example.com', subject: 'Device Alert!', message: alert.message });\n+                // Get device owner's email or use alert owner\n+                const device = await Device.findById(deviceId);\n+                const ownerEmail = device.ownerEmail || 'admin@example.com';\n+                \n+                try {\n+                    await sendEmail({ \n+                        to: ownerEmail, \n+                        subject: 'Device Alert!', \n+                        message: alert.message \n+                    });\n+                } catch (emailError) {\n+                    console.error('Failed to send email:', emailError);\n+                }\n+            }\n+        }\n-    }\n \n-    res.send('Device check complete.');\n+        res.json({ message: 'Device check complete.' });\n+    } catch (error) {\n+        res.status(500).json({ error: 'Failed to check device alerts' });\n+    }\n });\n```\n\n<details>\n<summary>\ud83e\udd16 Prompt for AI Agents</summary>\n\n```\nIn src/api/routes/vuln.js lines 23 to 49, fix the inconsistent use of comparison\noperators by using strict equality (===) consistently for alert condition\nchecks. Replace the hardcoded email recipient with a dynamic value, such as\nretrieving the user's email associated with the device or alert. Add error\nhandling around the sendEmail call to catch and log any failures. Implement a\nmechanism to prevent repeated alert emails for the same condition, such as\ntracking triggered alerts or adding a cooldown period.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n<!-- fingerprinting:phantom:poseidon:panther -->"
+        }
+      ]
+    },
+    {
+      "location": "docs/results.json:55",
+      "category": "Security",
+      "reviews": [
+        {
+          "tool": "CodeRabbit",
+          "comment": "_\u26a0\ufe0f Potential issue_\n\n**Sensitive credential still present in generated artefact.**\n\nThe `\"comment\"` payload for the _Security_ finding embeds the full literal API key  \n`ANALYTICS_KEY_12345_ABCDE`.  \nEven though the key was removed from `src/api/routes/vuln.js`, committing it here\nstill discloses the secret publicly.\n\nPlease scrub secrets from auto-generated reports (or store them outside VCS).\n\n```diff\n-const anlyticsApiKey = \"ANALYTICS_KEY_12345_ABCDE\"\n+// <redacted \u2013 secret removed from artefact>\n```\n\n<!-- suggestion_start -->\n\n<details>\n<summary>\ud83d\udcdd Committable suggestion</summary>\n\n> \u203c\ufe0f **IMPORTANT**\n> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.\n\n```suggestion\n\"tool\": \"CodeRabbit\",\n          \"comment\": \"_\u26a0\ufe0f Potential issue_\\n\\n**Remove unused hardcoded API key and fix security vulnerability.**\\n\\nThis hardcoded API key is never used in the code and poses a security risk. Additionally, the variable name contains a typo (\\\"anlyticsApiKey\\\" instead of \\\"analyticsApiKey\\\").\\n\\n\\n\\n\n```\n\n</details>\n\n<!-- suggestion_end -->\n\n<details>\n<summary>\ud83e\udd16 Prompt for AI Agents</summary>\n\n```\nIn docs/results.json around lines 48 to 55, the hardcoded API key\n\"ANALYTICS_KEY_12345_ABCDE\" is still present in the generated report, exposing\nsensitive credentials publicly. Remove this literal API key from the JSON file\nentirely to prevent security risks, ensuring no secrets are stored in\nauto-generated reports or version control artifacts.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n<!-- fingerprinting:phantom:triton:cougar -->"
+        }
+      ]
+    },
+    {
+      "location": ".github/workflows/test_cra.yml:101",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "devotiontoc",
+          "comment": "\n<div>\n\n\n<div id=\"suggestion\">\n<div id=\"issue\"><b>Insecure usage of secret in command line</b></div>\n<div id=\"fix\">\n\nThe Netlify deployment trigger uses a secret directly in the curl command without proper escaping, which could lead to command injection if the secret contains special characters. Use environment variables to pass the secret securely.\n</div>\n<details>\n<summary>\n<b>Code suggestion</b>\n</summary>\n<blockquote>Check the AI-generated fix before applying</blockquote>\n<div id=\"code\">\n\n\n```\n        - name: Trigger Netlify Deployment\n          if: success()\n -        run: curl -X POST -d {} ${{ secrets.NETLIFY_BUILD_HOOK_URL }}\n +        env:\n +          NETLIFY_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK_URL }}\n +        run: curl -X POST -d {} $NETLIFY_HOOK\n```\n\n</div>\n</details>\n</div>\n\n\n\n<small><i>Code Review Run <a href=https://github.com/devotiontoc/code_reviewer_comparison/pull/4#issuecomment-3045459636>#15d659</a></i></small>\n</div>\n\n---\nShould Bito avoid suggestions like this for future reviews? (<a href=https://alpha.bito.ai/home/ai-agents/review-rules>Manage Rules</a>)\n- [ ] Yes, avoid them"
         }
       ]
     }
