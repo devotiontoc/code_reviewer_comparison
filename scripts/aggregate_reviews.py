@@ -6,13 +6,12 @@ from collections import defaultdict
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = os.environ.get("GITHUB_REPOSITORY")
 PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
-print("GITHUB_TOKEN: "+GITHUB_TOKEN)
-print("REPO_NAME: "+REPO_NAME)
-print("PR_NUMBER: "+PR_NUMBER)
 
 TOOL_IDENTIFIERS = {
     'CodeRabbit': 'coderabbitai[bot]',
-    'BitoAI': 'bitoai[bot]'
+    'BitoAI': 'bito-ai-bot',
+    'Codacy': 'codacy-bot',
+    'GitHub Copilot': 'github-actions[bot]'
 }
 TOOLS = list(TOOL_IDENTIFIERS.keys())
 
@@ -94,7 +93,12 @@ def run_aggregation():
         },
         "findings": processed_findings
     }
-
+    if unrecognized_authors:
+        print("\n--- Found Unrecognized Bot Authors ---")
+        print("Consider adding these to the TOOL_IDENTIFIERS dictionary in your script:")
+        for author in unrecognized_authors:
+            print(f"- {author}")
+        print("-------------------------------------\n")
     # 5. Save results to a file
     output_path = 'docs/results.json'
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
