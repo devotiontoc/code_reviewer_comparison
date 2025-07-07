@@ -6,7 +6,7 @@ from collections import defaultdict
 GITHUB_TOKEN = os.environ.get("GIT_ACCESS_TOKEN")
 REPO_NAME = os.environ.get("GITHUB_REPOSITORY")
 PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
-
+print("hello")
 TOOL_IDENTIFIERS = {
     'CodeRabbit': 'coderabbitai[bot]',
     'BitoAI': 'bitoai[bot]'
