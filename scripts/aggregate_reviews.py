@@ -52,7 +52,7 @@ def run_aggregation():
         line = comment.get('line')
 
         current_tool = next((name for name, id in TOOL_IDENTIFIERS.items() if id == author), None)
-        if not current_tool:.
+        if not current_tool:
             if '[bot]' in author and author not in KNOWN_BOT_IDS:
                 unrecognized_authors.add(author)
             continue
