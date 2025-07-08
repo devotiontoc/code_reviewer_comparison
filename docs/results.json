@@ -7,16 +7,18 @@
       "BitoAI",
       "Codacy",
       "GitHub Copilot",
-      "devotiontoc"
+      "devotiontoc",
+      "codacy"
     ]
   },
   "summary_charts": {
     "findings_by_tool": [
-      8,
+      9,
       0,
       0,
       0,
-      2
+      3,
+      5
     ],
     "findings_by_category": {
       "labels": [
@@ -25,8 +27,8 @@
         "Bug"
       ],
       "data": [
-        2,
-        2,
+        4,
+        7,
         4
       ]
     }
@@ -117,6 +119,76 @@
         {
           "tool": "devotiontoc",
           "comment": "\n<div>\n\n\n<div id=\"suggestion\">\n<div id=\"issue\"><b>Hardcoded API key in source code</b></div>\n<div id=\"fix\">\n\nThe API key `anlyticsApiKey` is hardcoded and exposed in the source code, creating a security risk. API keys should be stored in environment variables or a secure configuration system.\n</div>\n<details>\n<summary>\n<b>Code suggestion</b>\n</summary>\n<blockquote>Check the AI-generated fix before applying</blockquote>\n<div id=\"code\">\n\n\n```suggestion\nconst anlyticsApiKey = process.env.ANALYTICS_API_KEY;\n \n```\n\n</div>\n</details>\n</div>\n\n\n\n<small><i>Code Review Run <a href=https://github.com/devotiontoc/code_reviewer_comparison/pull/6#issuecomment-3047696332>#8d263a</a></i></small>\n</div>\n\n---\nShould Bito avoid suggestions like this for future reviews? (<a href=https://alpha.bito.ai/home/ai-agents/review-rules>Manage Rules</a>)\n- [ ] Yes, avoid them"
+        }
+      ]
+    },
+    {
+      "location": "docs/results.json:12",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "CodeRabbit",
+          "comment": "_\ud83d\udee0\ufe0f Refactor suggestion_\n\n**Duplicate entry for Codacy in `tool_names`**\n\nThe array contains both `\"Codacy\"` and `\"codacy\"`. Unless the two casings represent distinct tools, keep a single, consistently-cased entry to avoid double counting downstream.\n\n<details>\n<summary>\ud83e\udd16 Prompt for AI Agents</summary>\n\n```\nIn docs/results.json around lines 5 to 12, the \"tool_names\" array contains\nduplicate entries for Codacy with different casing (\"Codacy\" and \"codacy\"). To\nfix this, remove one of the entries and ensure only a single, consistently-cased\nversion of \"Codacy\" remains in the array to prevent double counting downstream.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n<!-- fingerprinting:phantom:triton:cougar -->"
+        }
+      ]
+    },
+    {
+      "location": "docs/results.json:95",
+      "category": "Security",
+      "reviews": [
+        {
+          "tool": "devotiontoc",
+          "comment": "\n<div>\n\n\n<div id=\"suggestion\">\n<div id=\"issue\"><b>Sensitive API key exposed in JSON file</b></div>\n<div id=\"fix\">\n\nThe diff shows a hardcoded API key `ANALYTICS_KEY_12345_ABCDE` in the comment payload. This exposes sensitive credentials in version control, creating a security risk.\n</div>\n<details>\n<summary>\n<b>Code suggestion</b>\n</summary>\n<blockquote>Check the AI-generated fix before applying</blockquote>\n<div id=\"code\">\n\n\n```\n  -          \"comment\": \"_\\u26a0\\ufe0f Potential issue_\\n\\n**Sensitive credential still present in generated artefact.**\\n\\nThe `\\\"comment\\\"` payload for the _Security_ finding embeds the full literal API key  \\n`ANALYTICS_KEY_12345_ABCDE`.  \\nEven though the key was removed from `src/api/routes/vuln.js`, committing it here\\nstill discloses the secret publicly.\\n\\nPlease scrub secrets from auto-generated reports (or store them outside VCS).\\n\\n```diff\\n-const anlyticsApiKey = \\\"ANALYTICS_KEY_12345_ABCDE\\\"\\n+// <redacted \\u2013 secret removed from artefact>\\n```\\n\\n<!-- suggestion_start -->\\n\\n<details>\\n<summary>\\ud83d\\udcdd Committable suggestion</summary>\\n\\n> \\u203c\\ufe0f **IMPORTANT**\\n> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.\\n\\n```suggestion\\n\\\"tool\\\": \\\"CodeRabbit\\\",\\n          \\\"comment\\\": \\\"_\\u26a0\\ufe0f Potential issue_\\\\n\\\\n**Remove unused hardcoded API key and fix security vulnerability.**\\\\n\\\\nThis hardcoded API key is never used in the code and poses a security risk. Additionally, the variable name contains a typo (\\\\\\\"anlyticsApiKey\\\\\\\" instead of \\\\\\\"analyticsApiKey\\\\\\\").\\\\n\\\\n\\\\n\\\\n\\n```\\n\\n</details>\\n\\n<!-- suggestion_end -->\\n\\n<details>\\n<summary>\\ud83e\\udd16 Prompt for AI Agents</summary>\\n\\n```\\nIn docs/results.json around lines 48 to 55, the hardcoded API key\\n\\\"ANALYTICS_KEY_12345_ABCDE\\\" is still present in the generated report, exposing\\nsensitive credentials publicly. Remove this literal API key from the JSON file\\nentirely to prevent security risks, ensuring no secrets are stored in\\nauto-generated reports or version control artifacts.\\n```\\n\\n</details>\\n\\n<!-- This is an auto-generated comment by CodeRabbit -->\\n\\n<!-- fingerprinting:phantom:triton:cougar -->\"\n```\n\n</div>\n</details>\n</div>\n\n\n\n<small><i>Code Review Run <a href=https://github.com/devotiontoc/code_reviewer_comparison/pull/6#issuecomment-3048376716>#20025d</a></i></small>\n</div>\n\n---\nShould Bito avoid suggestions like this for future reviews? (<a href=https://alpha.bito.ai/home/ai-agents/review-rules>Manage Rules</a>)\n- [ ] Yes, avoid them"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:23",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":warning: **Codacy** found a **medium Complexity** issue: [Method (anonymous) has a cyclomatic complexity of 9 (limit is 8)](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Lizard linter is that the function handling the `POST /check/:deviceId` endpoint has a cyclomatic complexity of 9, which exceeds the recommended limit of 8. Cyclomatic complexity is a measure of the number of linearly independent paths through a program's source code. A higher complexity indicates that the function is doing too much and may be hard to maintain or test.\n\nTo reduce the complexity, one effective approach is to extract the logic that checks the alerts into a separate function. This will simplify the main endpoint handler and lower its cyclomatic complexity.\n\nHere is the suggested single line change that extracts the alert checking logic:\n\n```suggestion\nconst checkAlerts = (alerts, currentValue) => alerts.map(alert => alert.condition === 'greater_than' && currentValue > alert.threshold);\n```\n\nThis change introduces a new function `checkAlerts` that can be called within the `router.post('/check/:deviceId', ...)` function, thereby reducing the complexity of the endpoint handler.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:29",
+      "category": "Security",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":warning: **Codacy** found a **medium Security** issue: [This application is looping over user controlled objects, which can lead to a layer 7 denial of service vulnerability.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Semgrep linter relates to the potential for a layer 7 denial of service (DoS) vulnerability. This occurs because the code is looping over an array (`alerts`) that may be influenced by user input (in this case, `deviceId`). If an attacker can manipulate the input to create a situation where the number of alerts is excessively large, it could lead to performance degradation or even crash the server.\n\nTo mitigate this risk, it is advisable to limit the number of alerts processed in the loop. A simple way to do this is to impose a maximum limit on the number of alerts that can be fetched and processed, which can help prevent excessive resource consumption.\n\nHere\u2019s the suggested code change to limit the number of alerts processed:\n\n```suggestion\n    const alerts = await Alert.find({ deviceId: deviceId }).limit(100).exec();\n``` \n\nThis change ensures that no more than 100 alerts are processed, reducing the risk of a DoS attack through excessive looping. Adjust the limit as necessary based on application requirements.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:11",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue reported by the PMD linter, \"Unnecessary block,\" typically indicates that the destructuring assignment could be done in a more concise way. In this case, it suggests that the destructuring operation could be simplified by directly accessing the properties from `req.body` without the need for a block.\n\nTo fix the issue, you can change the destructuring line to directly access the properties without using a block. Here\u2019s the suggested change:\n\n```suggestion\n    const { deviceId, condition, threshold, message } = req.body; // This line is already concise; however, if the linter suggests a change, it might be indicating to access properties directly when needed instead of destructuring.\n```\n\nHowever, since the line itself is already a standard practice, if the linter insists on a modification, you could consider accessing the properties directly in their usage instead of destructuring at the top. Here\u2019s an alternative approach if that\u2019s the intention:\n\n```suggestion\n    const deviceId = req.body.deviceId, condition = req.body.condition, threshold = req.body.threshold, message = req.body.message;\n```\n\nThis change would technically satisfy the linter's request by avoiding destructuring, but it's generally less readable. Therefore, you might want to review the linter's configuration or rules to ensure they align with your team's coding standards.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:24",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue reported by the PMD linter indicates that the block of code where `const { deviceId } = req.params;` is defined could be simplified. Specifically, the linter suggests that the destructuring assignment can be done directly in the parameter list of the function, eliminating the need for an extra line to declare the variable.\n\nHere's the code suggestion to fix the issue:\n\n```suggestion\n    router.post('/check/:deviceId', async (req, res) => { const { deviceId } = req.params; const { currentValue } = req.body; \n``` \n\nHowever, since the suggestion is to make a single line change, the correct adjustment would be to directly destructure `deviceId` from `req.params` in the function parameters:\n\n```suggestion\n    router.post('/check/:deviceId', async ({ params: { deviceId }, body: { currentValue } }, res) => {\n``` \n\nThis change combines the destructuring of both `deviceId` and `currentValue` directly in the function parameters, thus addressing the linter's concern about unnecessary blocks.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:62",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue described by the PMD linter, \"Unnecessary block,\" indicates that the code could be simplified. In this case, the linter is suggesting that the code can be made cleaner by removing the unnecessary space before the closing curly brace in the destructuring assignment. \n\nTo fix this issue, you can adjust the formatting of the line to ensure there are no extra spaces. The corrected line should have consistent spacing around the curly braces.\n\nHere\u2019s the code suggestion to fix the issue:\n\n```suggestion\n    const { alertId } = req.params;\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
         }
       ]
     }
