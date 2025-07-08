@@ -17,8 +17,8 @@
       0,
       0,
       0,
-      4,
-      5
+      3,
+      7
     ],
     "findings_by_category": {
       "labels": [
@@ -27,8 +27,8 @@
         "Bug"
       ],
       "data": [
-        4,
-        9,
+        6,
+        8,
         4
       ]
     }
@@ -133,16 +133,6 @@
       ]
     },
     {
-      "location": ".github/workflows/test_cra.yml:110",
-      "category": "Style / Best Practice",
-      "reviews": [
-        {
-          "tool": "CodeRabbit",
-          "comment": "_\ud83d\udee0\ufe0f Refactor suggestion_\n\n**`git-auto-commit-action` lacks credentials \u2013 push may be rejected**  \n\n`git-auto-commit-action` falls back to the default `GITHUB_TOKEN`, which no longer has write access once you switch to a GitHub App token. Pass the freshly-minted token explicitly:\n\n```diff\n-        with:\n-          commit_message: \"chore(ci): update aggregated code review findings\"\n-          file_pattern: \"docs/results.json\"\n+        with:\n+          commit_message: \"chore(ci): update aggregated code review findings\"\n+          file_pattern: \"docs/results.json\"\n+          token: ${{ steps.generate_token.outputs.token }}\n```\n\n<!-- suggestion_start -->\n\n<details>\n<summary>\ud83d\udcdd Committable suggestion</summary>\n\n> \u203c\ufe0f **IMPORTANT**\n> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.\n\n```suggestion\n      # Step 3: Commit results using the app's identity\n      - name: Commit results\n        uses: stefanzweifel/git-auto-commit-action@v5\n        with:\n          commit_message: \"chore(ci): update aggregated code review findings\"\n          file_pattern: \"docs/results.json\"\n          token: ${{ steps.generate_token.outputs.token }}\n          # This action will now use the token configured by the checkout step\n```\n\n</details>\n\n<!-- suggestion_end -->\n\n<details>\n<summary>\ud83e\udd16 Prompt for AI Agents</summary>\n\n```\nIn .github/workflows/test_cra.yml around lines 103 to 110, the\ngit-auto-commit-action is missing explicit credentials, causing push failures\nwhen using a GitHub App token. Fix this by passing the freshly minted token\nexplicitly to the action using the 'commit_user_token' input parameter set to\nthe token generated earlier in the workflow.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n<!-- fingerprinting:phantom:triton:cougar -->"
-        }
-      ]
-    },
-    {
       "location": "docs/results.json:12",
       "category": "Style / Best Practice",
       "reviews": [
@@ -153,22 +143,12 @@
       ]
     },
     {
-      "location": ".github/workflows/test_cra.yml:113",
+      "location": "src/api/routes/vuln.js:23",
       "category": "Style / Best Practice",
       "reviews": [
         {
-          "tool": "devotiontoc",
-          "comment": "\n<div>\n\n\n<div id=\"suggestion\">\n<div id=\"issue\"><b>Missing step reference in Netlify deployment</b></div>\n<div id=\"fix\">\n\nThe Netlify deployment command is using `steps.get_branch.outputs.branch` but there's no corresponding step to set this output variable in the visible workflow.\n</div>\n<details>\n<summary>\n<b>Code suggestion</b>\n</summary>\n<blockquote>Check the AI-generated fix before applying</blockquote>\n<div id=\"code\">\n\n\n```\n       - name: Trigger Netlify Deployment\n         if: success()\n -        run: curl -X POST -d {} \"${{ secrets.NETLIFY_BUILD_HOOK_URL }}?trigger_branch=${{ steps.get_branch.outputs.branch }}&trigger_title=Deploy%20Preview%20for%20PR%20%23${{ env.PULL_REQUEST_NUMBER }}\"\n +        run: curl -X POST -d {} \"${{ secrets.NETLIFY_BUILD_HOOK_URL }}?trigger_branch=${{ github.head_ref }}&trigger_title=Deploy%20Preview%20for%20PR%20%23${{ env.PULL_REQUEST_NUMBER }}\"\n```\n\n</div>\n</details>\n</div>\n\n\n\n<small><i>Code Review Run <a href=https://github.com/devotiontoc/code_reviewer_comparison/pull/6#issuecomment-3048485052>#b8cef5</a></i></small>\n</div>\n\n---\nShould Bito avoid suggestions like this for future reviews? (<a href=https://alpha.bito.ai/home/ai-agents/review-rules>Manage Rules</a>)\n- [ ] Yes, avoid them"
-        }
-      ]
-    },
-    {
-      "location": "src/api/routes/vuln.js:29",
-      "category": "Security",
-      "reviews": [
-        {
           "tool": "codacy",
-          "comment": ":warning: **Codacy** found a **medium Security** issue: [This application is looping over user controlled objects, which can lead to a layer 7 denial of service vulnerability.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Semgrep linter highlights a potential Layer 7 Denial of Service (DoS) vulnerability. This vulnerability arises because the application is iterating over a user-controlled object (`alerts`), which could be manipulated to contain a large number of entries. If an attacker sends a request that results in a large number of alerts being retrieved, the server may become overwhelmed, leading to performance degradation or even crashes.\n\nTo mitigate this risk, it's essential to limit the number of alerts processed in one request. A common approach is to implement a safeguard that restricts the maximum number of alerts that can be handled at once.\n\nHere's a code suggestion that adds a check to limit the number of alerts processed:\n\n```suggestion\n    for (let i = 0; i < Math.min(alerts.length, 100); i++) {\n``` \n\nIn this code suggestion, `Math.min(alerts.length, 100)` ensures that no more than 100 alerts are processed, regardless of how many are retrieved from the database. This helps prevent potential DoS attacks by limiting the workload on the server.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+          "comment": ":warning: **Codacy** found a **medium Complexity** issue: [Method (anonymous) has a cyclomatic complexity of 9 (limit is 8)](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Lizard linter regarding cyclomatic complexity indicates that the `router.post('/check/:deviceId', async (req, res) => {` method has a complexity of 9, which exceeds the acceptable limit of 8. Cyclomatic complexity measures the number of linearly independent paths through a program's source code, and high complexity can make code harder to understand and maintain.\n\nTo reduce the complexity, we can refactor the code by extracting the logic that checks alerts into a separate function. This will simplify the main endpoint handler and reduce its cyclomatic complexity.\n\nHere\u2019s the suggested single line change to extract the alert checking logic into a separate function:\n\n```suggestion\nconst checkAlerts = async (alerts, currentValue) => { /* alert checking logic */ };\n``` \n\nThis change would involve creating a new function `checkAlerts` that encapsulates the logic for checking alerts against the `currentValue`, thus simplifying the main route handler.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
         }
       ]
     },
@@ -178,7 +158,7 @@
       "reviews": [
         {
           "tool": "codacy",
-          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue described by the PMD linter, \"Unnecessary block,\" suggests that the destructuring assignment of properties from `req.body` can be simplified. In this case, the destructuring can be done directly in the function parameters, which avoids the need for an additional block of code.\n\nHere\u2019s the suggested single line change:\n\n```suggestion\n    router.post('/', async ({ body: { deviceId, condition, threshold, message }, user }, res) => {\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue reported by the PMD linter, \"Unnecessary block,\" indicates that the destructuring assignment of properties from `req.body` can be simplified. Since the properties are only being used once, we can directly access them from `req.body` without the need for destructuring.\n\nHere is the code suggestion to fix the issue:\n\n```suggestion\n    const deviceId = req.body.deviceId, condition = req.body.condition, threshold = req.body.threshold, message = req.body.message;\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
         }
       ]
     },
@@ -188,7 +168,7 @@
       "reviews": [
         {
           "tool": "codacy",
-          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the PMD linter, \"Unnecessary block,\" typically refers to a situation where a single statement is wrapped in curly braces, which is not needed. In this case, the destructuring of `deviceId` from `req.params` can be done directly without the block.\n\nTo fix this issue, you can change the line to directly assign `deviceId` without the curly braces. Here's the code suggestion:\n\n```suggestion\n    const deviceId = req.params.deviceId;\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the PMD linter, \"Unnecessary block,\" suggests that the destructuring assignment of `deviceId` from `req.params` can be simplified. In this case, since `deviceId` is only used once, we can directly access it from `req.params` without the need for a separate declaration.\n\nHere\u2019s the code suggestion to fix the issue:\n\n```suggestion\n    const alerts = await Alert.find({ deviceId: req.params.deviceId }).exec();\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
         }
       ]
     },
@@ -198,17 +178,47 @@
       "reviews": [
         {
           "tool": "codacy",
-          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue reported by the PMD linter indicates that there is an unnecessary block in the code. In this context, it likely refers to the fact that there is a space between the variable name and the closing curly brace in the destructuring assignment. This can lead to inconsistent formatting and is generally considered a style issue.\n\nTo fix this issue, we should remove the unnecessary space. Here is the suggested change:\n\n```suggestion\n    const { alertId } = req.params;\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue described by the PMD linter, \"Unnecessary block,\" typically indicates that the linter has detected a piece of code that can be simplified or that there is an inconsistency in the code formatting. In this case, the linter is likely referring to the spacing around the destructured variable `alertId`. The spacing should be consistent with best practices, and the line should not have a space before the closing curly brace.\n\nTo fix the issue, you can adjust the spacing as follows:\n\n```suggestion\n    const { alertId } = req.params;\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
         }
       ]
     },
     {
-      "location": "src/api/routes/vuln.js:23",
-      "category": "Style / Best Practice",
+      "location": "src/api/routes/vuln.js:29",
+      "category": "Security",
       "reviews": [
         {
           "tool": "codacy",
-          "comment": ":warning: **Codacy** found a **medium Complexity** issue: [Method (anonymous) has a cyclomatic complexity of 9 (limit is 8)](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue reported by the Lizard linter indicates that the cyclomatic complexity of the anonymous function handling the `/check/:deviceId` POST endpoint exceeds the recommended limit. Cyclomatic complexity measures the number of linearly independent paths through a program's source code. A higher complexity indicates that the code may be difficult to understand or maintain.\n\nTo reduce the cyclomatic complexity, we can refactor the logic that checks the alerts into a separate function. This will help to simplify the main route handler and keep its complexity within acceptable limits.\n\nHere\u2019s a single-line change to refactor the alert-checking logic into a separate function:\n\n```suggestion\nrouter.post('/check/:deviceId', async (req, res) => { const { deviceId } = req.params; const { currentValue } = req.body; await checkAlerts(deviceId, currentValue, res); });\n```\n\nAdditionally, you would need to define the `checkAlerts` function separately, which would handle the logic for checking the alerts and sending the response. This approach maintains the original functionality while reducing the complexity in the route handler.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+          "comment": ":warning: **Codacy** found a **medium Security** issue: [This application is looping over user controlled objects, which can lead to a layer 7 denial of service vulnerability.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Semgrep linter is related to the potential for a denial of service (DoS) vulnerability. Specifically, the code is looping over a user-controlled object, which in this case is the `alerts` array. If an attacker can manipulate the input to cause a situation where the `alerts` array is excessively large, it could lead to performance problems or even crash the server due to high resource consumption.\n\nTo mitigate this risk, you can limit the number of alerts processed in the loop by implementing a safeguard that restricts the maximum number of alerts that can be handled at once. This will help prevent excessive resource usage and potential denial of service.\n\nHere\u2019s a single line change that introduces a maximum limit on the number of alerts processed:\n\n```suggestion\n    for (let i = 0; i < Math.min(alerts.length, 100); i++) {\n```\n\nThis change ensures that no more than 100 alerts are processed in the loop, effectively mitigating the risk of a DoS attack while still allowing for alert processing.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": ".github/workflows/test_cra.yml:87",
+      "category": "Security",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":x: **Codacy** found a **critical Security** issue: [Using variable interpolation `${{...}}` with `github` context data in a `run:` step could allow an attacker to inject their own code into the runner.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Semgrep linter arises from the use of variable interpolation with the `github` context data in a `run:` step. This could potentially allow an attacker to manipulate the values of these variables if they have control over the pull request or issue comment, leading to code injection vulnerabilities in the GitHub Actions runner.\n\nTo mitigate this risk, it's recommended to avoid direct interpolation of `github` context variables in the shell commands executed in the `run:` step. Instead, we can use environment variables to safely handle these values.\n\nHere\u2019s a code suggestion that modifies the `run:` step to use environment variables instead of direct interpolation:\n\n```YAML\n              run: |\n                if [[ \"${GITHUB_EVENT_NAME}\" == \"pull_request\" ]]; then\n                  echo \"branch=${GITHUB_HEAD_REF}\" >> \"$GITHUB_OUTPUT\"\n                  echo \"number=${GITHUB_EVENT_NUMBER}\" >> \"$GITHUB_OUTPUT\"\n                elif [[ \"${GITHUB_EVENT_NAME}\" == \"issue_comment\" ]]; then\n                  echo \"branch=$(jq -r .issue.pull_request.head.ref \"$GITHUB_EVENT_PATH\")\" >> \"$GITHUB_OUTPUT\"\n                  echo \"number=${GITHUB_EVENT_ISSUE_NUMBER}\" >> \"$GITHUB_OUTPUT\"\n                fi\n```\n\nIn this suggestion, I've replaced `${{ github.event_name }}`, `${{ github.head_ref }}`, and `${{ github.event.number }}` with their corresponding environment variable equivalents (`GITHUB_EVENT_NAME`, `GITHUB_HEAD_REF`, `GITHUB_EVENT_NUMBER`, and `GITHUB_EVENT_ISSUE_NUMBER`). This approach helps prevent potential code injection by avoiding direct interpolation of user-controlled input in shell commands.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": ".github/workflows/test_cra.yml:73",
+      "category": "Security",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":warning: **Codacy** found a **medium Security** issue: [An action sourced from a third-party repository on GitHub is not pinned to a full length commit SHA. Pinning an action to a full length commit SHA is currently the only way to use an action as an immutable release.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Semgrep linter is that the GitHub Action `tibdex/github-app-token@v2` is being referenced using a version tag (`v2`), which can change over time as new commits are made to that branch. This means that if the action is updated, it could introduce breaking changes or vulnerabilities into your workflow without your knowledge. To mitigate this risk, it's recommended to pin the action to a specific commit SHA, which ensures that the exact version you are using remains unchanged.\n\nTo fix this issue, you should replace the version tag with the full-length commit SHA of the specific version you want to use. You can find the commit SHA by checking the repository's commit history.\n\nHere\u2019s the code suggestion to pin the action to a specific commit SHA:\n\n```suggestion\n        uses: tibdex/github-app-token@<full-length-commit-sha>\n``` \n\nMake sure to replace `<full-length-commit-sha>` with the actual commit SHA you want to pin to.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": ".github/workflows/test_cra.yml:83",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "CodeRabbit",
+          "comment": "_\ud83d\udee0\ufe0f Refactor suggestion_\n\n**Add `ref` to `actions/checkout` so the correct PR branch is checked out**\n\nWhen the workflow is triggered by an `issue_comment` event, `actions/checkout` defaults to the repository\u2019s default branch, not the pull-request head.  Down-stream aggregation and commits may therefore run against the wrong revision.\n\n```diff\n       - name: Checkout code\n         uses: actions/checkout@v4\n         with:\n+          ref: ${{ steps.pr_info.outputs.branch }}\n           token: ${{ steps.generate_token.outputs.token }}\n```\n\n<!-- suggestion_start -->\n\n<details>\n<summary>\ud83d\udcdd Committable suggestion</summary>\n\n> \u203c\ufe0f **IMPORTANT**\n> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.\n\n```suggestion\n      - name: Checkout code\n        uses: actions/checkout@v4\n        with:\n          ref: ${{ steps.pr_info.outputs.branch }}\n          token: ${{ steps.generate_token.outputs.token }}\n```\n\n</details>\n\n<!-- suggestion_end -->\n\n<details>\n<summary>\ud83e\udd16 Prompt for AI Agents</summary>\n\n```\nIn .github/workflows/test_cra.yml around lines 79 to 83, the actions/checkout\nstep lacks a ref parameter, causing it to check out the default branch instead\nof the PR branch when triggered by an issue_comment event. Fix this by adding a\nref field set to the pull request head reference, typically using\ngithub.event.pull_request.head.ref or a similar context variable, to ensure the\ncorrect PR branch is checked out.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n<!-- fingerprinting:phantom:triton:cougar -->"
         }
       ]
     }
