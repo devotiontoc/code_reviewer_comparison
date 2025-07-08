@@ -60,19 +60,38 @@ jobs:
           options: ${{ env.OPTIONS }}
   aggregate:
     name: Aggregate & Analyze Results
-    needs: [ code_review_job ] # Runs after all reviews are complete
+    needs: [ code_review_job ]
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
       contents: write
 
     steps:
+      # Step 1: Generate a token for your new GitHub App
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.BOT_APP_ID }}
+          private_key: ${{ secrets.BOT_PRIVATE_KEY }}
+
+      # Step 2: Checkout code using the new token
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate_token.outputs.token }}
 
-      - name: Get Pull Request Number
-        id: get_pr
-        run: echo "PULL_REQUEST_NUMBER=$(jq --raw-output .number "$GITHUB_EVENT_PATH")" >> "$GITHUB_ENV"
+      # Step 3: Get PR branch and number reliably
+      - name: Get PR Info
+        id: pr_info
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "branch=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
+            echo "number=${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            echo "branch=$(jq -r .issue.pull_request.head.ref "$GITHUB_EVENT_PATH")" >> "$GITHUB_OUTPUT"
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -84,18 +103,20 @@ jobs:
 
       - name: Run Aggregation Script
         env:
-          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+          PULL_REQUEST_NUMBER: ${{ steps.pr_info.outputs.number }}
         run: python scripts/aggregate_reviews.py
 
+      # Step 4: Commit results using the app's identity
       - name: Commit results
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(ci): update aggregated code review findings"
           file_pattern: "docs/results.json"
+          # This action will now use the token configured by the checkout step
 
-
+      # Step 5: Trigger Netlify Deployment with correct branch and PR number
       - name: Trigger Netlify Deployment
         if: success()
-        run: curl -X POST -d {} ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
+        run: curl -X POST -d {} "${{ secrets.NETLIFY_BUILD_HOOK_URL }}?trigger_branch=${{ steps.pr_info.outputs.branch }}&trigger_title=Deploy%20Preview%20for%20PR%20%23${{ steps.pr_info.outputs.number }}"
