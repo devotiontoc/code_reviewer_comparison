@@ -81,9 +81,17 @@ jobs:
         with:
           token: ${{ steps.generate_token.outputs.token }}
 
-      - name: Get Pull Request Number
-        id: get_pr
-        run: echo "PULL_REQUEST_NUMBER=$(jq --raw-output .number "$GITHUB_EVENT_PATH")" >> "$GITHUB_ENV"
+      # Step 3: Get PR branch and number reliably
+      - name: Get PR Info
+        id: pr_info
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "branch=${{ github.head_ref }}" >> "$GITHUB_OUTPUT"
+            echo "number=${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "issue_comment" ]]; then
+            echo "branch=$(jq -r .issue.pull_request.head.ref "$GITHUB_EVENT_PATH")" >> "$GITHUB_OUTPUT"
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -97,10 +105,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+          PULL_REQUEST_NUMBER: ${{ steps.pr_info.outputs.number }}
         run: python scripts/aggregate_reviews.py
 
-      # Step 3: Commit results using the app's identity
+      # Step 4: Commit results using the app's identity
       - name: Commit results
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
@@ -108,6 +116,7 @@ jobs:
           file_pattern: "docs/results.json"
           # This action will now use the token configured by the checkout step
 
+      # Step 5: Trigger Netlify Deployment with correct branch and PR number
       - name: Trigger Netlify Deployment
         if: success()
-        run: curl -X POST -d {} "${{ secrets.NETLIFY_BUILD_HOOK_URL }}?trigger_branch=${{ steps.get_branch.outputs.branch }}&trigger_title=Deploy%20Preview%20for%20PR%20%23${{ env.PULL_REQUEST_NUMBER }}"
+        run: curl -X POST -d {} "${{ secrets.NETLIFY_BUILD_HOOK_URL }}?trigger_branch=${{ steps.pr_info.outputs.branch }}&trigger_title=Deploy%20Preview%20for%20PR%20%23${{ steps.pr_info.outputs.number }}"
