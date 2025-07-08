@@ -68,3 +68,4 @@ router.delete('/:alertId', async(req, res) => {
 })
 
 module.exports = router;
+print("asd")
