@@ -13,11 +13,11 @@
   },
   "summary_charts": {
     "findings_by_tool": [
-      8,
+      10,
       0,
       0,
       0,
-      3,
+      4,
       5
     ],
     "findings_by_category": {
@@ -28,7 +28,7 @@
       ],
       "data": [
         4,
-        6,
+        9,
         4
       ]
     }
@@ -133,22 +133,42 @@
       ]
     },
     {
+      "location": ".github/workflows/test_cra.yml:110",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "CodeRabbit",
+          "comment": "_\ud83d\udee0\ufe0f Refactor suggestion_\n\n**`git-auto-commit-action` lacks credentials \u2013 push may be rejected**  \n\n`git-auto-commit-action` falls back to the default `GITHUB_TOKEN`, which no longer has write access once you switch to a GitHub App token. Pass the freshly-minted token explicitly:\n\n```diff\n-        with:\n-          commit_message: \"chore(ci): update aggregated code review findings\"\n-          file_pattern: \"docs/results.json\"\n+        with:\n+          commit_message: \"chore(ci): update aggregated code review findings\"\n+          file_pattern: \"docs/results.json\"\n+          token: ${{ steps.generate_token.outputs.token }}\n```\n\n<!-- suggestion_start -->\n\n<details>\n<summary>\ud83d\udcdd Committable suggestion</summary>\n\n> \u203c\ufe0f **IMPORTANT**\n> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.\n\n```suggestion\n      # Step 3: Commit results using the app's identity\n      - name: Commit results\n        uses: stefanzweifel/git-auto-commit-action@v5\n        with:\n          commit_message: \"chore(ci): update aggregated code review findings\"\n          file_pattern: \"docs/results.json\"\n          token: ${{ steps.generate_token.outputs.token }}\n          # This action will now use the token configured by the checkout step\n```\n\n</details>\n\n<!-- suggestion_end -->\n\n<details>\n<summary>\ud83e\udd16 Prompt for AI Agents</summary>\n\n```\nIn .github/workflows/test_cra.yml around lines 103 to 110, the\ngit-auto-commit-action is missing explicit credentials, causing push failures\nwhen using a GitHub App token. Fix this by passing the freshly minted token\nexplicitly to the action using the 'commit_user_token' input parameter set to\nthe token generated earlier in the workflow.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n<!-- fingerprinting:phantom:triton:cougar -->"
+        }
+      ]
+    },
+    {
+      "location": "docs/results.json:12",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "CodeRabbit",
+          "comment": "_\ud83d\udee0\ufe0f Refactor suggestion_\n\n_\u26a0\ufe0f Potential issue_\n\n**Tool list still contains duplicates & a non-tool entry**\n\n`\"Codacy\"` appears twice with different casing and the array also lists `\"devotiontoc\"`, which is not a static-analysis tool.  This skews downstream aggregation and is the root cause of the findings-by-tool divergence.\n\n```diff\n-      \"Codacy\",\n-      \"GitHub Copilot\",\n-      \"devotiontoc\",\n-      \"codacy\"\n+      \"Codacy\",\n+      \"GitHub Copilot\"\n```\n\nAfter pruning, recompute `summary_charts.findings_by_tool` to match the revised tool list.\n\n<!-- suggestion_start -->\n\n<details>\n<summary>\ud83d\udcdd Committable suggestion</summary>\n\n> \u203c\ufe0f **IMPORTANT**\n> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.\n\n```suggestion\n    \"tool_names\": [\n      \"CodeRabbit\",\n      \"BitoAI\",\n      \"Codacy\",\n      \"GitHub Copilot\"\n    ]\n```\n\n</details>\n\n<!-- suggestion_end -->\n\n<details>\n<summary>\ud83e\udd16 Prompt for AI Agents</summary>\n\n```\nIn docs/results.json around lines 5 to 12, the \"tool_names\" array contains\nduplicates with different casing (\"Codacy\" and \"codacy\") and includes a non-tool\nentry \"devotiontoc\". Remove the duplicate entries by normalizing casing and\neliminate \"devotiontoc\" from the list. After updating the tool list, recompute\nthe summary_charts.findings_by_tool data to reflect the revised tool names\naccurately.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n<!-- fingerprinting:phantom:triton:cougar -->"
+        }
+      ]
+    },
+    {
+      "location": ".github/workflows/test_cra.yml:113",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "devotiontoc",
+          "comment": "\n<div>\n\n\n<div id=\"suggestion\">\n<div id=\"issue\"><b>Missing step reference in Netlify deployment</b></div>\n<div id=\"fix\">\n\nThe Netlify deployment command is using `steps.get_branch.outputs.branch` but there's no corresponding step to set this output variable in the visible workflow.\n</div>\n<details>\n<summary>\n<b>Code suggestion</b>\n</summary>\n<blockquote>Check the AI-generated fix before applying</blockquote>\n<div id=\"code\">\n\n\n```\n       - name: Trigger Netlify Deployment\n         if: success()\n -        run: curl -X POST -d {} \"${{ secrets.NETLIFY_BUILD_HOOK_URL }}?trigger_branch=${{ steps.get_branch.outputs.branch }}&trigger_title=Deploy%20Preview%20for%20PR%20%23${{ env.PULL_REQUEST_NUMBER }}\"\n +        run: curl -X POST -d {} \"${{ secrets.NETLIFY_BUILD_HOOK_URL }}?trigger_branch=${{ github.head_ref }}&trigger_title=Deploy%20Preview%20for%20PR%20%23${{ env.PULL_REQUEST_NUMBER }}\"\n```\n\n</div>\n</details>\n</div>\n\n\n\n<small><i>Code Review Run <a href=https://github.com/devotiontoc/code_reviewer_comparison/pull/6#issuecomment-3048485052>#b8cef5</a></i></small>\n</div>\n\n---\nShould Bito avoid suggestions like this for future reviews? (<a href=https://alpha.bito.ai/home/ai-agents/review-rules>Manage Rules</a>)\n- [ ] Yes, avoid them"
+        }
+      ]
+    },
+    {
       "location": "src/api/routes/vuln.js:29",
       "category": "Security",
       "reviews": [
         {
           "tool": "codacy",
-          "comment": ":warning: **Codacy** found a **medium Security** issue: [This application is looping over user controlled objects, which can lead to a layer 7 denial of service vulnerability.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Semgrep linter pertains to the potential for a denial of service vulnerability due to the application looping over user-controlled objects. In this case, the `alerts` array is populated based on user input (specifically, `deviceId`), which could lead to an excessive number of alerts being processed. If an attacker were to manipulate the input to generate a large number of alerts, it could cause the server to become unresponsive due to the resource-intensive nature of the loop.\n\nTo mitigate this risk, we can limit the number of alerts processed in the loop. A common approach is to impose a maximum limit on the number of alerts that can be handled at once. This helps prevent potential abuse by restricting the impact of user-controlled input.\n\nHere's a suggested single-line change to implement this limit:\n\n```suggestion\n    const alerts = await Alert.find({ deviceId: deviceId }).limit(100).exec();\n```\n\nThis change limits the number of alerts fetched to a maximum of 100, thus reducing the risk of denial of service by controlling the size of the `alerts` array.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
-        }
-      ]
-    },
-    {
-      "location": "src/api/routes/vuln.js:23",
-      "category": "Style / Best Practice",
-      "reviews": [
-        {
-          "tool": "codacy",
-          "comment": ":warning: **Codacy** found a **medium Complexity** issue: [Method (anonymous) has a cyclomatic complexity of 9 (limit is 8)](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue with the cyclomatic complexity of 9 in the `router.post('/check/:deviceId', async (req, res) => {` method indicates that the method has too many branching paths, making it harder to understand and maintain. Cyclomatic complexity is a measure of the number of linearly independent paths through a program's source code, and a lower number is generally preferred for clarity and maintainability.\n\nTo reduce the complexity, we can refactor the code to separate the logic into smaller functions. However, since you requested a single line change, we can simplify the main function by extracting the alert checking logic into a separate function, which will help reduce the complexity of the main route handler.\n\nHere's a code suggestion that encapsulates the alert checking logic in a separate function:\n\n```suggestion\nconst checkAlerts = async (deviceId, currentValue) => { /* alert checking logic here */ };\n```\n\nThis change involves creating a new function `checkAlerts` that will handle the alert logic, thereby reducing the cyclomatic complexity of the main route handler. The implementation of `checkAlerts` would involve moving the alert checking logic into that function, and then calling it from the route handler.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+          "comment": ":warning: **Codacy** found a **medium Security** issue: [This application is looping over user controlled objects, which can lead to a layer 7 denial of service vulnerability.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue highlighted by the Semgrep linter pertains to the potential for a denial of service (DoS) vulnerability due to looping over a user-controlled object\u2014specifically, the `alerts` array. If an attacker sends a request that causes a large number of alerts to be fetched (e.g., by manipulating the input), the application could become overwhelmed by the processing required to iterate through the large array. This could lead to performance degradation or even service unavailability.\n\nTo mitigate this risk, it's advisable to limit the number of alerts retrieved from the database or implement pagination to ensure that the application can handle requests efficiently without being overwhelmed.\n\nHere's a code suggestion that limits the number of retrieved alerts to a maximum of, for example, 100 alerts:\n\n```suggestion\n    const alerts = await Alert.find({ deviceId: deviceId }).limit(100).exec();\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
         }
       ]
     },
@@ -158,7 +178,7 @@
       "reviews": [
         {
           "tool": "codacy",
-          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue described by the PMD linter, \"Unnecessary block,\" suggests that the destructuring assignment of `req.body` into multiple variables is considered unnecessary in this context. This could imply that the linter prefers a more concise approach or that the destructuring can be directly used in the subsequent code.\n\nTo resolve this issue, we can directly access the properties of `req.body` without destructuring them into separate variables. Here\u2019s a code suggestion to fix the issue:\n\n```suggestion\n    const alert = new Alert({ deviceId: req.body.deviceId, condition: req.body.condition, threshold: req.body.threshold, message: req.body.message, owner: req.user.userId });\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue described by the PMD linter, \"Unnecessary block,\" suggests that the destructuring assignment in the line `const { deviceId, condition, threshold, message } = req.body;` could be simplified. This is likely because the linter is detecting that the destructured properties are not being used in a way that necessitates the block structure, or it may be suggesting that the destructuring can be done directly in the function parameters.\n\nTo fix this issue, you can destructure the properties directly in the function parameters of the route handler. Here\u2019s the suggested code change:\n\n```suggestion\n    router.post('/', async ({ body: { deviceId, condition, threshold, message }, user }, res) => {\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
         }
       ]
     },
@@ -168,7 +188,7 @@
       "reviews": [
         {
           "tool": "codacy",
-          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe PMD linter is indicating that the destructuring assignment of `deviceId` from `req.params` is unnecessary within a block. This typically means that the variable is not used in a way that justifies its separate declaration. In this case, you can directly access `req.params.deviceId` wherever `deviceId` is used later in the code.\n\nTo fix the issue, you can replace the destructuring assignment with a direct reference to `req.params.deviceId`. Here\u2019s the suggested code change:\n\n```suggestion\n    const deviceId = req.params.deviceId;\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the PMD linter regarding the line `const { deviceId } = req.params;` is that it considers the destructuring assignment unnecessary because it can be simplified. In this case, you can directly access `req.params.deviceId` without needing to create a separate variable.\n\nHere\u2019s the suggested code change:\n\n```suggestion\n    const deviceId = req.params.deviceId;\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
         }
       ]
     },
@@ -178,7 +198,17 @@
       "reviews": [
         {
           "tool": "codacy",
-          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue reported by the PMD linter, \"Unnecessary block,\" typically indicates that there is a block of code that can be simplified, often due to a lack of curly braces around a single statement. In this case, the linter is likely referring to the `if` statements in the `Alert.findOne` callback, which can be simplified by removing the curly braces since each `if` statement only contains a single line of code.\n\nHere\u2019s the code suggestion to fix the issue by removing the unnecessary block:\n\n```Javascript\n    const { alertId } = req.params;\n    Alert.findOne({ _id: alertId }, (err, alert) => {\n        if (err) return res.status(500).send(\"There was a problem finding the alert.\");\n        if (!alert) return res.status(404).send(\"No alert found.\");\n        res.status(200).send(alert);\n    });\n``` \n\nNote: The code suggestion does not change the block structure of the `if` statements, as they are already in a valid format. However, if the linter's intention was to point out the formatting of the destructuring assignment, the following change would correct the spacing:\n\n```suggestion\n    const { alertId } = req.params;\n``` \n\nThis would ensure consistent spacing in the destructuring assignment, aligning with common code style practices.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue reported by the PMD linter regarding the line `const { alertId} = req.params;` is likely related to inconsistent spacing around the curly braces in the destructuring assignment. Specifically, there is an extra space before the closing curly brace, which does not conform to standard JavaScript coding conventions.\n\nTo fix this issue, you should remove the extra space. Here\u2019s the single line change wrapped as requested:\n\n```suggestion\n    const { alertId } = req.params;\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:23",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":warning: **Codacy** found a **medium Complexity** issue: [Method (anonymous) has a cyclomatic complexity of 9 (limit is 8)](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue reported by the Lizard linter indicates that the cyclomatic complexity of the `router.post('/check/:deviceId', async (req, res) => {` method is too high, meaning that the function has too many paths through it, which can make it harder to understand, test, and maintain. Cyclomatic complexity increases with the number of conditional statements (like `if`, `else`, `for`, etc.) and can be reduced by refactoring the code to simplify the logic.\n\nTo address this, one way to reduce complexity is to extract the logic that checks alerts into a separate function. This change will help keep the main route handler cleaner and more focused.\n\nHere\u2019s a single line change suggestion to accomplish this:\n\n```suggestion\nconst checkAlerts = async (alerts, currentValue) => { /* logic to check alerts */ };\n```\n\nThis change involves defining a function `checkAlerts` that will handle the alert checking logic, which will then be called within the route handler, thereby reducing its cyclomatic complexity.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
         }
       ]
     }
