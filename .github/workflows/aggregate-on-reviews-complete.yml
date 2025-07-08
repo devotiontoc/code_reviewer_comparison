@@ -1,99 +1,64 @@
-name: Aggregate After All Reviews (with Cool-down)
+# .github/workflows/manual-aggregate.yml
+name: Manual Aggregation Trigger
 
 on:
-  pull_request_review:
-    types: [submitted]
-
-# Define the GitHub logins for the required reviewers (bots/users)
-env:
-  REQUIRED_REVIEWERS: '["codacy-production[bot]", "coderabbitai[bot]", "Copilot", "devotiontoc"]'
+  # This workflow only runs when a comment is created on an issue or pull request.
+  issue_comment:
+    types: [created]
 
 jobs:
-  check-and-aggregate:
-    name: Check for All Reviews & Aggregate
+  aggregate-on-command:
+    # This 'if' condition is the key. It ensures the job ONLY runs if:
+    # 1. The comment is on a pull request.
+    # 2. The comment body is exactly '/aggregate'.
+    # 3. (Optional but recommended) The person who commented is authorized.
+    if: |
+      github.event.issue.pull_request &&
+      github.event.comment.body == '/aggregate'
+    name: Aggregate on Command
     runs-on: ubuntu-latest
-
-    # This creates a concurrency group for each PR.
-    # 'cancel-in-progress: true' will cancel any previous run of this job for the same PR.
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
-
     permissions:
       pull-requests: read
       contents: write
 
     steps:
-      # Step 1: Check for the presence of all required reviewers
-      - name: Check for all required reviewers
-        id: check_reviews
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-        run: |
-          # Get a de-duplicated list of every author who has submitted a review
-          submitted_reviewers=$(gh pr view $PR_URL --json reviews -q '.reviews.[].author.login' | sort -u)
-          
-          echo "Unique submitted reviewers:"
-          echo "$submitted_reviewers"
-          echo "---"
-          echo "Required reviewers: ${{ env.REQUIRED_REVIEWERS }}"
+      # Step 1: Add a reaction to the comment to show the job has started
+      - name: Acknowledge command
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: 'rocket'
 
-          all_present=true
-          # Loop through your list of required reviewers
-          for reviewer in $(echo '${{ env.REQUIRED_REVIEWERS }}' | jq -r '.[]'); do
-            # Check if the required reviewer is in the unique list
-            if ! echo "$submitted_reviewers" | grep -q "^$reviewer$"; then
-              echo "-> ⏳ Waiting for review from '$reviewer'..."
-              all_present=false
-              break # Stop checking, we know we're not ready
-            fi
-          done
-
-          if [ "$all_present" = true ]; then
-            echo "✅ All reviewers present. Starting cool-down period."
-            echo "run_aggregate=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "⏳ Still waiting for some reviewers. Stopping."
-            echo "run_aggregate=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Step 2: Introduce the cool-down period
-      # This step only runs if the check above passes and will be canceled if a new review comes in.
-      - name: Wait for cool-down period
-        if: steps.check_reviews.outputs.run_aggregate == 'true'
-        run: |
-          echo "Waiting for 3 minutes to allow for any final review comments..."
-          sleep 45
-
-      # Step 3: Get PR Info, but only after the cool-down
+      # Step 2: Get PR Info directly from the event payload
       - name: Get PR Info
-        if: steps.check_reviews.outputs.run_aggregate == 'true'
         id: pr_info
         run: |
-          echo "branch=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
-          echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          # The PR number is available directly from the issue context
+          echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          
+          # We can get the branch name using the GitHub CLI and the PR number
+          branch_name=$(gh pr view ${{ github.event.issue.number }} --json headRefName --jq '.headRefName')
+          echo "branch=${branch_name}" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 4: Generate a token for committing results
+      # Step 3: Generate a token for committing results
       - name: Generate token
-        if: steps.check_reviews.outputs.run_aggregate == 'true'
         id: generate_token
         uses: tibdex/github-app-token@v2
         with:
           app_id: ${{ secrets.BOT_APP_ID }}
           private_key: ${{ secrets.BOT_PRIVATE_KEY }}
 
-      # Step 5: Checkout the PR branch using the generated token
+      # Step 4: Checkout the specific PR branch
       - name: Checkout PR branch
-        if: steps.check_reviews.outputs.run_aggregate == 'true'
         uses: actions/checkout@v4
         with:
           token: ${{ steps.generate_token.outputs.token }}
           ref: ${{ steps.pr_info.outputs.branch }}
 
-      # Step 6: Run the aggregation script
+      # Step 5: Run your aggregation script
       - name: Run Aggregation Script
-        if: steps.check_reviews.outputs.run_aggregate == 'true'
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -102,15 +67,20 @@ jobs:
           python -m pip install requests
           python scripts/aggregate_reviews.py
 
-      # Step 7: Commit the results
+      # Step 6: Commit the results
       - name: Commit results
-        if: steps.check_reviews.outputs.run_aggregate == 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(ci): update aggregated code review findings"
           file_pattern: "docs/results.json"
 
-      # Step 8: Trigger the deployment
+      # Step 7: Trigger the deployment
       - name: Trigger Netlify Deployment
-        if: steps.check_reviews.outputs.run_aggregate == 'true'
         run: curl -X POST -d {} "${{ secrets.NETLIFY_BUILD_HOOK_URL }}?trigger_branch=${{ steps.pr_info.outputs.branch }}&trigger_title=Deploy%20Preview%20for%20PR%20%23${{ steps.pr_info.outputs.number }}"
+
+      # Step 8: Update the comment to show the job is complete
+      - name: Mark as complete
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: 'hooray'
