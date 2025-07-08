@@ -12,6 +12,8 @@ jobs:
       pull-requests: write
       contents: write
     name: Run code review agent on every pull request, respond to user comments
+    # This job will now only run when a PR is first opened or a comment is made.
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
 
     steps:
       - name: Set Options Environment Variable
@@ -59,11 +61,12 @@ jobs:
           pr: ${{ github.event.pull_request.html_url }}
           command: review
           options: ${{ env.OPTIONS }}
+
   aggregate:
     name: Aggregate & Analyze Results
     needs: [ code_review_job ]
-    # This job will now only run for PRs or comments on PRs
-    if: github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+    # This job will now run when a PR is opened, synchronized, or a comment is made on a PR.
+    if: always() && (github.event.action == 'opened' || github.event.action == 'synchronize' || (github.event_name == 'issue_comment' && github.event.issue.pull_request))
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
