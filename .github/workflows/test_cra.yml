@@ -95,7 +95,7 @@ jobs:
 
       - name: Run Aggregation Script
         env:
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }} # Use the app token here too
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
         run: python scripts/aggregate_reviews.py
@@ -110,4 +110,4 @@ jobs:
 
       - name: Trigger Netlify Deployment
         if: success()
-        run: curl -X POST -d {} ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
+        run: curl -X POST -d {} "${{ secrets.NETLIFY_BUILD_HOOK_URL }}?trigger_branch=${{ steps.get_branch.outputs.branch }}&trigger_title=Deploy%20Preview%20for%20PR%20%23${{ env.PULL_REQUEST_NUMBER }}"
