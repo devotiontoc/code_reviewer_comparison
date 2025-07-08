@@ -13,7 +13,8 @@ TOOL_IDENTIFIERS = {
     'BitoAI': 'bito-ai-bot',
     'Codacy': 'codacy-production[bot]',
     'GitHub Copilot': 'github-actions[bot]',
-    'devotiontoc': 'devotiontoc'
+    'devotiontoc': 'devotiontoc',
+    'Copilot': 'Copilot'
 }
 TOOLS = list(TOOL_IDENTIFIERS.keys())
 KNOWN_BOT_IDS = set(TOOL_IDENTIFIERS.values())
