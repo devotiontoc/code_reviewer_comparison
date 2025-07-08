@@ -12,7 +12,8 @@ TOOL_IDENTIFIERS = {
     'BitoAI': 'bito-ai-bot',
     'Codacy': 'codacy-bot',
     'GitHub Copilot': 'github-actions[bot]',
-    'devotiontoc': 'devotiontoc'
+    'devotiontoc': 'devotiontoc',
+    'codacy' : 'codacy-production[bot]'
 }
 #test
 TOOLS = list(TOOL_IDENTIFIERS.keys())
