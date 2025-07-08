@@ -43,8 +43,9 @@ jobs:
           fi
           echo "OPTIONS=--static_analysis.fb_infer.enabled=True --code_feedback=True --dependency_check.enabled=False --bee.path=/automation-platform  --bee.actn_dir=/automation-platform/default_bito_ad/bito_modules --git.access_token=${{ secrets.GIT_ACCESS_TOKEN }} --bito_cli.bito.access_key=${{ secrets.BITO_ACCESS_KEY }}${GIT_DOMAIN_OPTION}${STATIC_ANALYSIS_TOOL_OPTION}${REVIEW_SCOPE_OPTION}${EXCLUDE_BRANCHES_OPTION}${EXCLUDE_FILES_OPTION}${EXCLUDE_DRAFT_PR_OPTION}" >> $GITHUB_ENV
 
+      # This step will now only run for comments on Pull Requests
       - name: Code Review Agent - Issue Comment
-        if: github.event_name == 'issue_comment'
+        if: github.event_name == 'issue_comment' && github.event.issue.pull_request
         uses: gitbito/codereviewagent@main
         with:
           pr: ${{ github.event.issue.pull_request.html_url }}
@@ -61,27 +62,15 @@ jobs:
   aggregate:
     name: Aggregate & Analyze Results
     needs: [ code_review_job ]
+    # This job will now only run for PRs or comments on PRs
+    if: github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
       contents: write
 
     steps:
-      # Step 1: Generate a token for your new GitHub App
-      - name: Generate token
-        id: generate_token
-        uses: tibdex/github-app-token@v2
-        with:
-          app_id: ${{ secrets.BOT_APP_ID }}
-          private_key: ${{ secrets.BOT_PRIVATE_KEY }}
-
-      # Step 2: Checkout code using the new token
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ steps.generate_token.outputs.token }}
-
-      # Step 3: Get PR branch and number reliably
+      # Step 1: Get PR branch and number reliably (BEFORE checkout)
       - name: Get PR Info
         id: pr_info
         run: |
@@ -92,6 +81,21 @@ jobs:
             echo "branch=$(jq -r .issue.pull_request.head.ref "$GITHUB_EVENT_PATH")" >> "$GITHUB_OUTPUT"
             echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
           fi
+
+      # Step 2: Generate a token for your new GitHub App
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.BOT_APP_ID }}
+          private_key: ${{ secrets.BOT_PRIVATE_KEY }}
+
+      # Step 3: Checkout the specific PR branch using the new token
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate_token.outputs.token }}
+          ref: ${{ steps.pr_info.outputs.branch }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -114,7 +118,6 @@ jobs:
         with:
           commit_message: "chore(ci): update aggregated code review findings"
           file_pattern: "docs/results.json"
-          # This action will now use the token configured by the checkout step
 
       # Step 5: Trigger Netlify Deployment with correct branch and PR number
       - name: Trigger Netlify Deployment

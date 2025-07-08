@@ -53,8 +53,6 @@ function renderCharts(results) {
         options: { responsive: true }
     });
 
-    // --- ADD THE TWO NEW CHART RENDERERS ---
-
     // Chart 3: Findings per File
     const findingsByFileCtx = document.getElementById('findingsByFileChart').getContext('2d');
     new Chart(findingsByFileCtx, {
@@ -97,20 +95,49 @@ function renderFindings(results) {
         const card = document.createElement('div');
         card.className = 'finding-card';
 
-        let reviewsHTML = '';
+        // --- START: New Highlighting Logic ---
 
-        // Ensure finding.reviews is an array before calling forEach
+        // 1. Find the common words across all reviews for this finding
+        let commonWords = new Set();
+        if (finding.reviews && finding.reviews.length > 1) {
+            // Use the words from the first review as the baseline
+            const baseWords = new Set(finding.reviews[0].comment.toLowerCase().match(/\b(\w+)\b/g));
+
+            // Find the intersection with all subsequent reviews
+            for (let i = 1; i < finding.reviews.length; i++) {
+                const otherWords = new Set(finding.reviews[i].comment.toLowerCase().match(/\b(\w+)\b/g));
+                baseWords.forEach(word => {
+                    if (!otherWords.has(word)) {
+                        baseWords.delete(word);
+                    }
+                });
+            }
+            commonWords = baseWords;
+        }
+
+        // 2. Build the HTML for each review, highlighting the common words
+        let reviewsHTML = '';
         if (Array.isArray(finding.reviews)) {
             finding.reviews.forEach(review => {
                 const toolClassName = review.tool.replace(/\s+/g, '-');
+                let highlightedComment = escapeHtml(review.comment); // Always escape first
+
+                if (commonWords.size > 0) {
+                    // Create a regex to find all common words (case-insensitive) and wrap them
+                    const regex = new RegExp(`\\b(${[...commonWords].join('|')})\\b`, 'gi');
+                    highlightedComment = highlightedComment.replace(regex, '<mark>$&</mark>');
+                }
+
                 reviewsHTML += `
                     <div class="tool-review ${toolClassName}">
                         <h4>${review.tool}</h4>
-                        <blockquote>${escapeHtml(review.comment)}</blockquote>
+                        <blockquote>${highlightedComment}</blockquote>
                     </div>
                 `;
             });
         }
+
+        // --- END: New Highlighting Logic ---
 
         card.innerHTML = `
             <div class="finding-card-header">
