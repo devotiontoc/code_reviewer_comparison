@@ -7,16 +7,18 @@
       "BitoAI",
       "Codacy",
       "GitHub Copilot",
-      "devotiontoc"
+      "devotiontoc",
+      "codacy"
     ]
   },
   "summary_charts": {
     "findings_by_tool": [
-      8,
+      9,
       0,
       0,
       0,
-      2
+      2,
+      6
     ],
     "findings_by_category": {
       "labels": [
@@ -25,8 +27,8 @@
         "Bug"
       ],
       "data": [
-        2,
-        2,
+        4,
+        7,
         4
       ]
     }
@@ -117,6 +119,76 @@
         {
           "tool": "devotiontoc",
           "comment": "\n<div>\n\n\n<div id=\"suggestion\">\n<div id=\"issue\"><b>Hardcoded API key in source code</b></div>\n<div id=\"fix\">\n\nThe API key `anlyticsApiKey` is hardcoded and exposed in the source code, creating a security risk. API keys should be stored in environment variables or a secure configuration system.\n</div>\n<details>\n<summary>\n<b>Code suggestion</b>\n</summary>\n<blockquote>Check the AI-generated fix before applying</blockquote>\n<div id=\"code\">\n\n\n```suggestion\nconst anlyticsApiKey = process.env.ANALYTICS_API_KEY;\n \n```\n\n</div>\n</details>\n</div>\n\n\n\n<small><i>Code Review Run <a href=https://github.com/devotiontoc/code_reviewer_comparison/pull/6#issuecomment-3047696332>#8d263a</a></i></small>\n</div>\n\n---\nShould Bito avoid suggestions like this for future reviews? (<a href=https://alpha.bito.ai/home/ai-agents/review-rules>Manage Rules</a>)\n- [ ] Yes, avoid them"
+        }
+      ]
+    },
+    {
+      "location": "docs/results.json:20",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "CodeRabbit",
+          "comment": "_\ud83d\udca1 Verification agent_\n\n<details>\n<summary>\ud83e\udde9 Analysis chain</summary>\n\n**`findings_by_tool` counts appear inconsistent with the dataset**\n\nThe array reports `[8, 0, 0, 0, 2]` (total = 10), yet only 8 unique findings are listed below. Either:\n\n1. Some findings are double-counted across tools, or  \n2. The counts weren\u2019t updated after pruning/merging findings.\n\nPlease reconcile the numbers or document why the total exceeds the actual list length.\n\n---\n\n\ud83c\udfc1 Script executed:\n\n```shell\n#!/bin/bash\n# Sanity-check: compare counts in summary_charts against the real findings list\njq '\n  .summary_charts.findings_by_tool as $toolCounts |\n  .findings as $list |\n  {\n    reportedTotal: ($toolCounts | add),\n    actualTotal: ($list | length)\n  }\n' docs/results.json\n```\n\nLength of output: 229\n\n---\n\n\n\n</details>\n\n**Inconsistent `findings_by_tool` counts in docs/results.json**\n\nThe `summary_charts.findings_by_tool` array currently sums to 10, but there are only 8 entries in the `findings` list. Please reconcile these counts or document why the total exceeds the actual list length.\n\n\u2022 File: `docs/results.json`  \n\u2022 Lines: 15\u201320  \n\u2022 Current snippet:\n```\n      8,\n      0,\n      0,\n      0,\n      2\n```\n\n<details>\n<summary>\ud83e\udd16 Prompt for AI Agents</summary>\n\n```\nIn docs/results.json around lines 15 to 20, the summary_charts.findings_by_tool\narray sums to 10, but the findings list only contains 8 entries. Review the\nfindings list and the findings_by_tool counts to ensure they match. Adjust the\ncounts in findings_by_tool to accurately reflect the number of findings or add a\ncomment explaining why the total exceeds the findings list length.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n<!-- fingerprinting:phantom:triton:cougar -->"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:23",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":warning: **Codacy** found a **medium Complexity** issue: [Method (anonymous) has a cyclomatic complexity of 9 (limit is 8)](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Lizard linter is that the cyclomatic complexity of the `router.post('/check/:deviceId', async (req, res) => {` method exceeds the recommended limit of 8. Cyclomatic complexity is a metric used to measure the number of linearly independent paths through a program's source code. A higher complexity indicates that the method may be doing too much, making it harder to read, test, and maintain.\n\nTo reduce the complexity, one approach is to refactor the logic inside the method into smaller, more manageable functions. However, since you requested a single line change, we can introduce early returns to simplify the flow of the code and reduce complexity.\n\nHere\u2019s a code suggestion that introduces an early return if no alerts are found, which can help lower the cyclomatic complexity:\n\n```suggestion\nif (alerts.length === 0) return res.status(204).send('No alerts found');\n``` \n\nThis line can be added right after fetching the alerts, thereby reducing the complexity by avoiding unnecessary nested logic.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:29",
+      "category": "Security",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":warning: **Codacy** found a **medium Security** issue: [This application is looping over user controlled objects, which can lead to a layer 7 denial of service vulnerability.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Semgrep linter is that the code is looping over a user-controlled object (`alerts.length`), which can potentially be manipulated by a malicious user. If an attacker can control the number of alerts returned (for example, by sending a large number of alerts), it could lead to a denial of service (DoS) situation by overwhelming the server with processing.\n\nTo mitigate this issue, we can limit the number of alerts processed by introducing a maximum threshold on the number of alerts that can be handled in a single request. This will help prevent excessive resource consumption and potential DoS attacks.\n\nHere's a code suggestion that introduces a limit on the number of alerts processed:\n\n```suggestion\n    for (let i = 0; i < Math.min(alerts.length, 100); i++) {\n``` \n\nIn this suggestion, we limit the loop to a maximum of 100 alerts, which can be adjusted based on the application's requirements.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": ".github/workflows/test_cra.yml:73",
+      "category": "Security",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":warning: **Codacy** found a **medium Security** issue: [An action sourced from a third-party repository on GitHub is not pinned to a full length commit SHA. Pinning an action to a full length commit SHA is currently the only way to use an action as an immutable release.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue identified by the Semgrep linter is that the action `tibdex/github-app-token@v2` is referenced using a version tag (`v2`) instead of a specific commit SHA. Using a version tag can lead to potential security vulnerabilities because the action could change if the maintainers update it, which may introduce breaking changes or security issues. Pinning to a full-length commit SHA ensures that the exact version of the action being used is fixed and immutable, providing better security and stability.\n\nTo fix this issue, you should replace the version tag with the full-length commit SHA of the specific version you want to use. You can find the commit SHA by checking the GitHub repository for `tibdex/github-app-token` and looking for the commit corresponding to version `v2`.\n\nHere\u2019s the code suggestion with the change:\n\n```suggestion\n        uses: tibdex/github-app-token@<full-length-commit-SHA>\n``` \n\nMake sure to replace `<full-length-commit-SHA>` with the actual SHA you find in the repository.\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:11",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue reported by the PMD linter, \"Unnecessary block,\" suggests that the destructuring of `req.body` can be simplified. In this case, the destructuring can be done directly in the function parameters, eliminating the need for a separate block to define the variables. This streamlines the code and adheres to cleaner coding practices.\n\nHere\u2019s the suggested code change:\n\n```suggestion\n    router.post('/', async ({ body: { deviceId, condition, threshold, message }, user }, res) => {\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:24",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe PMD linter is indicating that the destructuring assignment of `deviceId` from `req.params` is unnecessary, possibly because it can be accessed directly from `req.params.deviceId` without the need for destructuring. This can help simplify the code and improve readability.\n\nHere\u2019s the code suggestion to fix the issue with a single line change:\n\n```suggestion\n    const deviceId = req.params.deviceId;\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
+        }
+      ]
+    },
+    {
+      "location": "src/api/routes/vuln.js:62",
+      "category": "Style / Best Practice",
+      "reviews": [
+        {
+          "tool": "codacy",
+          "comment": ":information_source: **Codacy** found a **minor CodeStyle** issue: [Unnecessary block.](https://app.codacy.com/gh/devotiontoc/code_reviewer_comparison/pull-requests/6)\n\nThe issue described by the PMD linter, \"Unnecessary block,\" typically indicates that there is a redundant block of code or syntax that can be simplified. In this case, the linter is likely referring to the extra space before the closing curly brace in the destructuring assignment of `alertId`. \n\nTo fix this issue, we can remove the extra space between `alertId` and the closing curly brace. \n\nHere\u2019s the suggested code change:\n\n```suggestion\n    const { alertId } = req.params;\n```\n\n---\n\n *This comment was generated by an experimental AI tool.*"
         }
       ]
     }
