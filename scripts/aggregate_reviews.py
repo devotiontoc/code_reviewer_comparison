@@ -3,6 +3,7 @@ import json
 import requests
 from collections import defaultdict
 
+# --- Configuration ---
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = os.environ.get("GITHUB_REPOSITORY")
 PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
@@ -10,12 +11,10 @@ PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
 TOOL_IDENTIFIERS = {
     'CodeRabbit': 'coderabbitai[bot]',
     'BitoAI': 'bito-ai-bot',
-    'Codacy': 'codacy-bot',
+    'Codacy': 'codacy-production[bot]',
     'GitHub Copilot': 'github-actions[bot]',
-    'devotiontoc': 'devotiontoc',
-    'codacy' : 'codacy-production[bot]'
+    'devotiontoc': 'devotiontoc'
 }
-#test
 TOOLS = list(TOOL_IDENTIFIERS.keys())
 KNOWN_BOT_IDS = set(TOOL_IDENTIFIERS.values())
 
@@ -32,7 +31,6 @@ def categorize_comment(comment_text):
 
 # --- Main Logic ---
 def run_aggregation():
-    unrecognized_authors = set()
     # 1. Fetch comments from GitHub API
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
     url = f"https://api.github.com/repos/{REPO_NAME}/pulls/{PR_NUMBER}/comments"
@@ -41,58 +39,55 @@ def run_aggregation():
         response.raise_for_status()
         comments = response.json()
         print(f"Successfully fetched {len(comments)} review comments.")
-
-
     except requests.exceptions.RequestException as e:
         print(f"Error fetching comments: {e}")
         return
-    print("\n--- Raw Comment Data ---")
-    for i, comment in enumerate(comments):
-        author = comment.get('user', {}).get('login')
-        body = comment.get('body', '').replace('\n', ' ')[:100] # First 100 chars
-        path = comment.get('path')
-        line = comment.get('line')
-        print(f"Comment #{i+1}: Author='{author}', Path='{path}', Line='{line}', Body='{body}...'")
-    print("------------------------\n")
-    # 2. Group comments by location (file:line)
+
+    # 2. Group comments and gather stats in a single loop
+    unrecognized_authors = set()
     findings_map = defaultdict(list)
+    comment_lengths = defaultdict(list)
+
     for comment in comments:
         author = comment.get('user', {}).get('login')
-        if not author:
-            continue
-        file_path = comment.get('path')
-        line = comment.get('line')
-
         current_tool = next((name for name, id in TOOL_IDENTIFIERS.items() if id == author), None)
+
         if not current_tool:
-            if '[bot]' in author and author not in KNOWN_BOT_IDS:
+            if author and '[bot]' in author and author not in KNOWN_BOT_IDS:
                 unrecognized_authors.add(author)
             continue
-        if not all([current_tool, file_path, line]):
-            continue
+
+        file_path = comment.get('path')
+        line = comment.get('line')
+        comment_body = comment.get('body', '')
 
         finding_key = ""
         if file_path:
-            # Group by file and line, or by file and "general" if line is None
             finding_key = f"{file_path}:{line or 'general'}"
         else:
-            # For comments not tied to any file
             finding_key = "General PR Comments"
+
         findings_map[finding_key].append({
             "tool": current_tool,
-            "comment": comment.get('body', '')
+            "comment": comment_body
         })
+
+        comment_lengths[current_tool].append(len(comment_body))
 
     # 3. Process grouped findings into a structured list
     processed_findings = []
     category_counts = defaultdict(int)
     tool_finding_counts = defaultdict(int)
+    findings_per_file = defaultdict(int)
 
     for location, reviews in findings_map.items():
-        # Combine all comments for categorization
         all_comments_text = " ".join([r['comment'] for r in reviews])
         category = categorize_comment(all_comments_text)
         category_counts[category] += 1
+
+        file_path = location.split(':')[0]
+        if file_path != "General PR Comments":
+            findings_per_file[file_path] += 1
 
         for review in reviews:
             tool_finding_counts[review['tool']] += 1
@@ -103,7 +98,14 @@ def run_aggregation():
             "reviews": reviews
         })
 
-    # 4. Assemble the final JSON output
+    # 4. Calculate final stats for charts
+    avg_comment_lengths = []
+    for tool in TOOLS:
+        lengths = comment_lengths.get(tool, [])
+        avg = sum(lengths) / len(lengths) if lengths else 0
+        avg_comment_lengths.append(round(avg))
+
+    # 5. Assemble the final JSON output
     final_output = {
         "metadata": {
             "repo": REPO_NAME,
@@ -115,17 +117,27 @@ def run_aggregation():
             "findings_by_category": {
                 "labels": list(category_counts.keys()),
                 "data": list(category_counts.values())
+            },
+            "comment_verbosity": {
+                "labels": TOOLS,
+                "data": avg_comment_lengths
+            },
+            "findings_by_file": {
+                "labels": list(findings_per_file.keys()),
+                "data": list(findings_per_file.values())
             }
         },
         "findings": processed_findings
     }
+
     if unrecognized_authors:
         print("\n--- Found Unrecognized Bot Authors ---")
         print("Consider adding these to the TOOL_IDENTIFIERS dictionary in your script:")
         for author in unrecognized_authors:
             print(f"- {author}")
         print("-------------------------------------\n")
-    # 5. Save results to a file
+
+    # 6. Save results to a file
     output_path = 'docs/results.json'
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w') as f:

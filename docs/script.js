@@ -17,7 +17,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 function renderCharts(results) {
     const { tool_names } = results.metadata;
-    const { findings_by_tool, findings_by_category } = results.summary_charts;
+    const {
+        findings_by_tool,
+        findings_by_category,
+        comment_verbosity,
+        findings_by_file
+    } = results.summary_charts;
 
     // Chart 1: Total Findings by Tool
     const findingsByToolCtx = document.getElementById('findingsByToolChart').getContext('2d');
@@ -28,7 +33,7 @@ function renderCharts(results) {
             datasets: [{
                 label: 'Number of Findings',
                 data: findings_by_tool,
-                backgroundColor: ['#3498db', '#e74c3c', '#9b59b6', '#2ecc71'],
+                backgroundColor: ['#38BDF8', '#F472B6', '#A78BFA', '#34D399', '#FBBF24'],
             }]
         },
         options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
@@ -42,16 +47,48 @@ function renderCharts(results) {
             labels: findings_by_category.labels,
             datasets: [{
                 data: findings_by_category.data,
-                backgroundColor: ['#e74c3c', '#f1c40f', '#3498db', '#95a5a6'],
+                backgroundColor: ['#991B1B', '#166534', '#9A3412', '#1E40AF'],
             }]
         },
         options: { responsive: true }
+    });
+
+    // --- ADD THE TWO NEW CHART RENDERERS ---
+
+    // Chart 3: Findings per File
+    const findingsByFileCtx = document.getElementById('findingsByFileChart').getContext('2d');
+    new Chart(findingsByFileCtx, {
+        type: 'bar',
+        data: {
+            labels: findings_by_file.labels,
+            datasets: [{
+                label: 'Number of Findings',
+                data: findings_by_file.data,
+                backgroundColor: '#A78BFA', // Purple
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    // Chart 4: Comment Verbosity
+    const commentVerbosityCtx = document.getElementById('commentVerbosityChart').getContext('2d');
+    new Chart(commentVerbosityCtx, {
+        type: 'bar',
+        data: {
+            labels: comment_verbosity.labels,
+            datasets: [{
+                label: 'Average Characters per Comment',
+                data: comment_verbosity.data,
+                backgroundColor: '#34D399', // Green
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
     });
 }
 
 function renderFindings(results) {
     const container = document.getElementById('detailed-findings');
-    if (results.findings.length === 0) {
+    if (!results.findings || results.findings.length === 0) {
         container.innerHTML = '<p>No findings were reported by the automated tools for this pull request.</p>';
         return;
     }
@@ -61,15 +98,19 @@ function renderFindings(results) {
         card.className = 'finding-card';
 
         let reviewsHTML = '';
-        finding.reviews.forEach(review => {
-            const toolClassName = review.tool.replace(/\s+/g, '-');
-            reviewsHTML += `
-                <div class="tool-review ${toolClassName}">
-                    <h4>${review.tool}</h4>
-                    <blockquote>${escapeHtml(review.comment)}</blockquote>
-                </div>
-            `;
-        });
+
+        // Ensure finding.reviews is an array before calling forEach
+        if (Array.isArray(finding.reviews)) {
+            finding.reviews.forEach(review => {
+                const toolClassName = review.tool.replace(/\s+/g, '-');
+                reviewsHTML += `
+                    <div class="tool-review ${toolClassName}">
+                        <h4>${review.tool}</h4>
+                        <blockquote>${escapeHtml(review.comment)}</blockquote>
+                    </div>
+                `;
+            });
+        }
 
         card.innerHTML = `
             <div class="finding-card-header">
@@ -83,6 +124,9 @@ function renderFindings(results) {
 }
 
 function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') {
+        return '';
+    }
     return unsafe
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")

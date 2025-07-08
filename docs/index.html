@@ -16,20 +16,29 @@
 </header>
 
 <main>
-    <div class="charts-grid">
-        <section class="chart-container">
-            <h2>Total Findings by Tool</h2>
-            <canvas id="findingsByToolChart"></canvas>
-        </section>
-        <section class="chart-container">
-            <h2>Findings by Category</h2>
-            <canvas id="findingsByCategoryChart"></canvas>
-        </section>
-    </div>
+        <div class="charts-grid">
+            <section class="chart-container">
+                <h2>Total Findings by Tool</h2>
+                <canvas id="findingsByToolChart"></canvas>
+            </section>
+            <section class="chart-container">
+                <h2>Findings by Category</h2>
+                <canvas id="findingsByCategoryChart"></canvas>
+            </section>
 
-    <section id="detailed-findings">
-        <h2>Consolidated Findings</h2>
-    </section>
+            <section class="chart-container">
+                <h2>Findings per File</h2>
+                <canvas id="findingsByFileChart"></canvas>
+            </section>
+            <section class="chart-container">
+                <h2>Comment Verbosity (Avg. Chars)</h2>
+                <canvas id="commentVerbosityChart"></canvas>
+            </section>
+        </div>
+
+        <section id="detailed-findings">
+            <h2>Consolidated Findings</h2>
+        </section>
 </main>
 
 <script src="script.js"></script>
