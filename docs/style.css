@@ -7,17 +7,13 @@
 :root {
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-
-    --color-bg: #111827; /* Very dark blue-gray */
-    --color-bg-card: #1F2937; /* Lighter card background */
-    --color-border: #374151; /* Subtle border color */
-
-    --color-text-primary: #F9FAFB; /* Off-white for primary text */
-    --color-text-secondary: #9CA3AF; /* Gray for secondary text */
-    --color-text-header: #FFFFFF; /* Pure white for main headers */
-
-    --color-accent: #38BDF8; /* Bright blue for accents */
-
+    --color-bg: #111827;
+    --color-bg-card: #1F2937;
+    --color-border: #374151;
+    --color-text-primary: #F9FAFB;
+    --color-text-secondary: #9CA3AF;
+    --color-text-header: #FFFFFF;
+    --color-accent: #38BDF8;
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
     --border-radius: 8px;
@@ -31,7 +27,7 @@ body {
     line-height: 1.6;
     margin: 0;
     padding: 0;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11'; /* Nicer font rendering */
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 /* --- 3. Layout Styles --- */
@@ -49,7 +45,6 @@ main {
 
 .charts-grid {
     display: grid;
-    /* FIX: Reduced the minimum width to be mobile-friendly. */
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 1.5rem;
     margin-bottom: 3rem;
@@ -105,9 +100,10 @@ code {
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-md);
 
-    /* FIX: Replaced fixed height with a responsive aspect-ratio. */
-    height: auto;
-    aspect-ratio: 4 / 3;
+    /* FIX: Remove aspect-ratio and use a min-height. This is more stable. */
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
 }
 
 #detailed-findings h2 {
@@ -147,17 +143,16 @@ code {
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0.3rem 0.6rem;
-    border-radius: 9999px; /* Pill shape */
+    border-radius: 9999px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--color-text-header);
 }
 
-/* Category-specific colors */
-.category.security { background-color: #991B1B; } /* Dark Red */
-.category.performance { background-color: #166534; } /* Dark Green */
-.category.bug { background-color: #9A3412; } /* Dark Orange */
-.category.style-best-practice { background-color: #1E40AF; } /* Dark Blue */
+.category.security { background-color: #991B1B; }
+.category.performance { background-color: #166534; }
+.category.bug { background-color: #9A3412; }
+.category.style-best-practice { background-color: #1E40AF; }
 
 .finding-card-body {
     display: grid;
@@ -183,11 +178,10 @@ code {
     padding-left: 0.75rem;
 }
 
-/* Tool-specific accent colors (with corrected class names) */
-.tool-review.CodeRabbit h4 { border-color: #38BDF8; } /* Bright Blue */
-.tool-review.BitoAI h4 { border-color: #F472B6; } /* Pink */
-.tool-review.Codacy h4 { border-color: #A78BFA; } /* Purple */
-.tool-review.GitHub-Copilot h4 { border-color: #34D399; } /* Green */
+.tool-review.CodeRabbit h4 { border-color: #38BDF8; }
+.tool-review.BitoAI h4 { border-color: #F472B6; }
+.tool-review.Codacy h4 { border-color: #A78BFA; }
+.tool-review.GitHub-Copilot h4 { border-color: #34D399; }
 
 .tool-review blockquote {
     margin: 0;

@@ -27,15 +27,14 @@ function renderCharts(results) {
 
     const COLORS = ['#38BDF8', '#F472B6', '#A78BFA', '#34D399', '#FBBF24', '#F87171'];
 
-    // Define common options for all charts to be responsive and styled correctly
     const commonChartOptions = {
         responsive: true,
-        maintainAspectRatio: false, // This is crucial for responsive containers
+        maintainAspectRatio: false,
         plugins: {
             legend: {
                 display: false,
                 labels: {
-                    color: '#D1D5DB' // Sets legend text color for dark mode
+                    color: '#D1D5DB'
                 }
             }
         },
@@ -51,7 +50,6 @@ function renderCharts(results) {
         }
     };
 
-    // --- Render all charts with the common responsive options ---
     new Chart(document.getElementById('findingsByToolChart').getContext('2d'), {
         type: 'bar',
         data: { labels: tool_names, datasets: [{ label: 'Number of Findings', data: findings_by_tool, backgroundColor: COLORS }] },
@@ -61,13 +59,14 @@ function renderCharts(results) {
     new Chart(document.getElementById('findingsByCategoryChart').getContext('2d'), {
         type: 'doughnut',
         data: { labels: findings_by_category.labels, datasets: [{ data: findings_by_category.data, backgroundColor: ['#991B1B', '#166534', '#9A3412', '#1E40AF'] }] },
-        options: { ...commonChartOptions, plugins: { legend: { display: true, position: 'top' } } } // Override to show legend
+        options: { ...commonChartOptions, plugins: { legend: { display: true, position: 'top' } } }
     });
 
     new Chart(document.getElementById('findingsByFileChart').getContext('2d'), {
-        type: 'bar',
+        type: 'bar', // Should be a bar chart
         data: { labels: findings_by_file.labels, datasets: [{ label: 'Number of Findings', data: findings_by_file.data, backgroundColor: '#A78BFA' }] },
-        options: commonChartOptions
+        // FIX: Make this a horizontal bar chart to prevent label clutter
+        options: { ...commonChartOptions, indexAxis: 'y' }
     });
 
     new Chart(document.getElementById('commentVerbosityChart').getContext('2d'), {

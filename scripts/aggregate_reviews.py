@@ -11,34 +11,43 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = os.environ.get("GITHUB_REPOSITORY")
 PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
 
-# Using standard single quotes for all strings
 TOOL_IDENTIFIERS = {
     'CodeRabbit': 'coderabbitai[bot]',
     'BitoAI': 'bito-code-review[bot]',
     'Codacy': 'codacy-production[bot]',
     'GitHub Copilot': 'copilot-pull-request-reviewer[bot]',
-    'devotiontoc': 'devotiontoc'
-
+    'devotiontoc': 'devotiontoc',
+    'Copilot' : 'Copilot'
 }
+
 
 TOOLS = list(TOOL_IDENTIFIERS.keys())
 KNOWN_BOT_IDS = set(TOOL_IDENTIFIERS.values())
 
 # --- Helper Functions ---
-def fetch_github_api(url):
+def fetch_github_api_paginated(url):
+    """Fetches all pages for a given GitHub API endpoint."""
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
+        "Accept": "application/vnd.github.v3+json",
+        "X-GitHub-Api-Version": "2022-11-28"
     }
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching {url}: {e}")
-        return None
+    results = []
+    while url:
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            results.extend(response.json())
+            # Get the URL for the next page, if it exists
+            url = response.links.get('next', {}).get('url')
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching {url}: {e}")
+            return None
+    return results
 
 def parse_iso_timestamp(ts_str):
+    if not ts_str:
+        return None
     return datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
 
 def categorize_comment(comment_text):
@@ -55,48 +64,53 @@ def categorize_comment(comment_text):
 def run_aggregation():
     base_api_url = f"https://api.github.com/repos/{REPO_NAME}"
 
-    pr_data = fetch_github_api(f"{base_api_url}/pulls/{PR_NUMBER}")
-    if not pr_data:
-        print("Failed to fetch PR data. Aborting.")
+    pr_data = fetch_github_api_paginated(f"{base_api_url}/pulls/{PR_NUMBER}")
+    if not isinstance(pr_data, dict): # The non-paginated version returns a dict
+        _pr_data_single = requests.get(f"{base_api_url}/pulls/{PR_NUMBER}", headers={"Authorization": f"Bearer {GITHUB_TOKEN}"}).json()
+        pr_created_at = parse_iso_timestamp(_pr_data_single['created_at'])
+    else:
+        pr_created_at = parse_iso_timestamp(pr_data['created_at'])
+
+    if not pr_created_at:
+        print("Failed to fetch PR creation date. Aborting.")
         return
-    pr_created_at = parse_iso_timestamp(pr_data['created_at'])
 
-    # Fetch all types of comments
-    review_comments = fetch_github_api(f"{base_api_url}/pulls/{PR_NUMBER}/comments") or []
-    issue_comments = fetch_github_api(f"{base_api_url}/issues/{PR_NUMBER}/comments") or []
+    # 1. Fetch all top-level review comments (line comments)
+    review_comments = fetch_github_api_paginated(f"{base_api_url}/pulls/{PR_NUMBER}/comments") or []
 
-    # Reviews can contain comments, so we process them to extract those comments
-    reviews = fetch_github_api(f"{base_api_url}/pulls/{PR_NUMBER}/reviews") or []
+    # 2. Fetch all general issue-level comments
+    issue_comments = fetch_github_api_paginated(f"{base_api_url}/issues/{PR_NUMBER}/comments") or []
 
-    all_comments = review_comments + issue_comments
+    # 3. Fetch all review submissions. These are containers for the main review body AND associated comments.
+    reviews = fetch_github_api_paginated(f"{base_api_url}/pulls/{PR_NUMBER}/reviews") or []
 
-    # A dictionary to hold all comments, keyed by their ID to avoid duplicates
-    comment_map = {item['id']: item for item in all_comments}
+    # Use a dictionary to store all comments by their unique ID to prevent duplicates
+    all_items = {}
 
-    # Process reviews to extract their body as a "General PR Summary"
-    # and to ensure their associated comments are fetched.
+    # Add all fetched items to the dictionary
+    for item in review_comments + issue_comments:
+        all_items[item['id']] = item
+
     for review in reviews:
-        # Add the main review body as a general comment if it exists
+        # A) Add the main review body as a "general" comment
         if review.get('body'):
-            # To make it compatible with the loop below, we can add it to our list.
-            # We give it a unique identifier to avoid clashes.
-            review_as_comment = review.copy()
-            review_as_comment['id'] = f"review-{review['id']}" # Create a unique ID
-            comment_map[review_as_comment['id']] = review_as_comment
+            # This is a review summary, not a line comment. We treat it as a unique item.
+            all_items[f"review-summary-{review['id']}"] = review
 
-        # A single review can have multiple associated line comments.
-        # The /pulls/{pr}/comments endpoint should already contain these.
-        # If not, you would fetch them from the review's `_links['pull_request_comments']['href']`
-        # But for simplicity, let's assume the initial fetch is sufficient and the problem is in processing.
+        # B) Fetch the line comments associated with THIS specific review submission
+        # This is a crucial step to get comments posted as part of a single bulk review
+        review_specific_comments = fetch_github_api_paginated(f"{base_api_url}/pulls/{PR_NUMBER}/reviews/{review['id']}/comments") or []
+        for comment in review_specific_comments:
+            all_items[comment['id']] = comment
 
-    all_comments = list(comment_map.values())
-    print(f"Successfully fetched and de-duplicated a total of {len(all_comments)} comments and review summaries.")
+    final_comments = list(all_items.values())
+    print(f"Successfully fetched a total of {len(final_comments)} unique comments and review summaries.")
 
     findings_map = defaultdict(list)
     comment_lengths = defaultdict(list)
     review_times = defaultdict(list)
 
-    for item in all_comments:
+    for item in final_comments:
         author = item.get('user', {}).get('login')
         current_tool = next((name for name, id in TOOL_IDENTIFIERS.items() if id == author), None)
         if not current_tool:
@@ -106,11 +120,11 @@ def run_aggregation():
         if not comment_body:
             continue
 
-        # Use submitted_at for reviews, created_at for other comments
         timestamp_str = item.get('submitted_at') or item.get('created_at')
-        if not timestamp_str:
-            continue
         comment_created_at = parse_iso_timestamp(timestamp_str)
+        if not comment_created_at:
+            continue
+
         time_to_comment = (comment_created_at - pr_created_at).total_seconds()
         review_times[current_tool].append(time_to_comment)
 
@@ -123,15 +137,7 @@ def run_aggregation():
                 original_code = '\n'.join(original_code_lines)
 
         file_path = item.get('path')
-        # Use 'line' for top-level comments, and 'start_line' might be relevant for reviews covering multiple lines
         line = item.get('line') or item.get('start_line')
-
-        # If a comment is a reply, it might be better to associate it with its parent's location
-        if item.get('in_reply_to_id'):
-            # For simplicity in this fix, we'll still treat it as a separate finding at the same location.
-            # A more advanced implementation might group them.
-            pass
-
         finding_key = f"{file_path}:{line}" if file_path and line else "General PR Summary"
 
         findings_map[finding_key].append({
@@ -145,13 +151,13 @@ def run_aggregation():
     findings_per_file = defaultdict(int)
     overlap_counts = defaultdict(int)
 
-    for location, reviews in findings_map.items():
-        review_tools = {review['tool'] for review in reviews}
+    for location, reviews_list in findings_map.items():
+        review_tools = {review['tool'] for review in reviews_list}
         if len(review_tools) > 1:
             for tool_pair in combinations(sorted(list(review_tools)), 2):
                 overlap_counts[tool_pair] += 1
 
-        all_comments_text = " ".join([r['comment'] for r in reviews])
+        all_comments_text = " ".join([r['comment'] for r in reviews_list])
         category = categorize_comment(all_comments_text)
         category_counts[category] += 1
 
@@ -159,11 +165,11 @@ def run_aggregation():
             file_path = location.split(':')[0]
             findings_per_file[file_path] += 1
 
-        for review in reviews:
+        for review in reviews_list:
             tool_finding_counts[review['tool']] += 1
 
         processed_findings.append({
-            "location": location, "category": category, "reviews": reviews
+            "location": location, "category": category, "reviews": reviews_list
         })
 
     def get_avg(data_dict, key):
@@ -172,7 +178,6 @@ def run_aggregation():
 
     avg_comment_lengths = [get_avg(comment_lengths, tool) for tool in TOOLS]
     avg_review_times_seconds = [get_avg(review_times, tool) for tool in TOOLS]
-
     overlap_data_for_json = [{"sets": list(tools_tuple), "size": count} for tools_tuple, count in overlap_counts.items()]
 
     final_output = {
