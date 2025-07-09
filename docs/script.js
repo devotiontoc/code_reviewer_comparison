@@ -27,7 +27,7 @@ function renderCharts(results) {
 
     const COLORS = ['#38BDF8', '#F472B6', '#A78BFA', '#34D399', '#FBBF24', '#F87171'];
 
-    // --- Existing Charts ---
+    // --- Other Charts (unchanged) ---
     new Chart(document.getElementById('findingsByToolChart').getContext('2d'), {
         type: 'bar', data: { labels: tool_names, datasets: [{ label: 'Number of Findings', data: findings_by_tool, backgroundColor: COLORS }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
     });
@@ -46,27 +46,30 @@ function renderCharts(results) {
         options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} seconds` } } }, scales: { y: { ticks: { callback: value => `${value} s` } } } }
     });
 
-    // --- START: REPLACEMENT FOR VENN DIAGRAM ---
+    // --- START: FINAL FIX FOR OVERLAP CHART ---
     const overlapCtx = document.getElementById('suggestionOverlapChart').getContext('2d');
-    // Filter for actual overlaps and sort them to show the most frequent ones on top
-    const overlapData = suggestion_overlap.filter(item => item.sets.length > 1).sort((a, b) => b.size - a.size);
 
-    if (overlapData.length > 0) {
-        // Create a horizontal bar chart for the top overlaps
+    // Filter for actual overlaps and sort them to get the most frequent ones
+    const allOverlaps = suggestion_overlap.filter(item => item.sets.length > 1).sort((a, b) => b.size - a.size);
+
+    // Limit the chart to the Top 10 to prevent it from growing too large
+    const topOverlaps = allOverlaps.slice(0, 10);
+
+    if (topOverlaps.length > 0) {
         new Chart(overlapCtx, {
             type: 'bar',
             data: {
-                labels: overlapData.map(d => d.sets.join(' & ')),
+                labels: topOverlaps.map(d => d.sets.join(' & ')),
                 datasets: [{
                     label: 'Overlapping Findings',
-                    data: overlapData.map(d => d.size),
+                    data: topOverlaps.map(d => d.size),
                     backgroundColor: '#F87171' // Red
                 }]
             },
             options: {
                 indexAxis: 'y', // This makes the bar chart horizontal
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: false, // Allows chart to fit the container's height
                 plugins: { legend: { display: false } },
                 scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
             }
@@ -75,7 +78,7 @@ function renderCharts(results) {
         const chartContainer = overlapCtx.canvas.parentNode;
         chartContainer.innerHTML = '<p class="no-data-message">No overlapping findings were detected among the tools.</p>';
     }
-    // --- END: REPLACEMENT FOR VENN DIAGRAM ---
+    // --- END: FINAL FIX FOR OVERLAP CHART ---
 }
 
 function renderFindings(results) {
