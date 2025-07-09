@@ -11,15 +11,15 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = os.environ.get("GITHUB_REPOSITORY")
 PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
 
+´
 TOOL_IDENTIFIERS = {
     'CodeRabbit': 'coderabbitai[bot]',
     'BitoAI': 'bito-code-review[bot]',
     'Codacy': 'codacy-production[bot]',
     'GitHub Copilot': 'copilot-pull-request-reviewer[bot]',
-    'devotiontoc': 'devotiontoc',
-    'Copilot' : 'Copilot'
-
+    'devotiontoc': 'devotiontoc'
 }
+
 TOOLS = list(TOOL_IDENTIFIERS.keys())
 KNOWN_BOT_IDS = set(TOOL_IDENTIFIERS.values())
 
@@ -111,14 +111,10 @@ def run_aggregation():
     overlap_counts = defaultdict(int)
 
     for location, reviews in findings_map.items():
-        # --- START: Simplified Overlap Logic ---
-        # An overlap is now any time two different tools comment on the same location.
         review_tools = {review['tool'] for review in reviews}
         if len(review_tools) > 1:
-            # Get all unique pairs of tools that commented here
             for tool_pair in combinations(sorted(list(review_tools)), 2):
                 overlap_counts[tool_pair] += 1
-        # --- END: Simplified Overlap Logic ---
 
         all_comments_text = " ".join([r['comment'] for r in reviews])
         category = categorize_comment(all_comments_text)
@@ -142,19 +138,8 @@ def run_aggregation():
     avg_comment_lengths = [get_avg(comment_lengths, tool) for tool in TOOLS]
     avg_review_times_seconds = [get_avg(review_times, tool) for tool in TOOLS]
 
-    venn_data = []
-    # Add the intersection data first
-    for tools_tuple, count in overlap_counts.items():
-        venn_data.append({"sets": list(tools_tuple), "size": count})
-
-    # Then add the data for findings unique to each tool
-    for tool in TOOLS:
-        total_for_tool = tool_finding_counts.get(tool, 0)
-        overlapped_for_tool = sum(count for a_tuple, count in overlap_counts.items() if tool in a_tuple)
-        unique_count = total_for_tool - overlapped_for_tool
-
-        if unique_count > 0:
-            venn_data.append({"sets": [tool], "size": unique_count})
+    # This data is now used for the new bar chart instead of the Venn diagram
+    overlap_data_for_json = [{"sets": list(tools_tuple), "size": count} for tools_tuple, count in overlap_counts.items()]
 
     final_output = {
         "metadata": {"repo": REPO_NAME, "pr_number": int(PR_NUMBER), "tool_names": TOOLS},
@@ -164,7 +149,7 @@ def run_aggregation():
             "comment_verbosity": {"labels": TOOLS, "data": avg_comment_lengths},
             "findings_by_file": {"labels": list(findings_per_file.keys()), "data": list(findings_per_file.values())},
             "review_speed": {"labels": TOOLS, "data": avg_review_times_seconds},
-            "suggestion_overlap": venn_data
+            "suggestion_overlap": overlap_data_for_json
         },
         "findings": processed_findings
     }
