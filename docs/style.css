@@ -100,10 +100,9 @@ code {
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-md);
 
-    /* FIX: Remove aspect-ratio and use a min-height. This is more stable. */
+    /* FIX: Removed flex properties that caused infinite stretching bug. */
+    /* A min-height is sufficient to give the chart initial space. */
     min-height: 400px;
-    display: flex;
-    flex-direction: column;
 }
 
 #detailed-findings h2 {
@@ -182,6 +181,8 @@ code {
 .tool-review.BitoAI h4 { border-color: #F472B6; }
 .tool-review.Codacy h4 { border-color: #A78BFA; }
 .tool-review.GitHub-Copilot h4 { border-color: #34D399; }
+.tool-review.CodiumAI h4 { border-color: #6D28D9; } /* Added color for CodiumAI */
+
 
 .tool-review blockquote {
     margin: 0;
@@ -208,4 +209,32 @@ mark {
     align-items: center;
     height: 100%;
     color: var(--color-text-secondary);
+}
+
+/* Diff2HTML overrides for dark mode */
+.d2h-file-header {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+}
+.d2h-diff-table {
+    font-family: var(--font-mono);
+}
+.d2h-code-line-ctn, .d2h-code-side-linenumber {
+    background-color: var(--color-bg-card);
+    color: var(--color-text-secondary);
+}
+.d2h-code-line-ins {
+    background-color: rgba(22, 163, 74, 0.15);
+}
+.d2h-code-side-line-ins {
+    background-color: rgba(22, 163, 74, 0.1);
+}
+.d2h-code-line-del {
+    background-color: rgba(220, 38, 38, 0.15);
+}
+.d2h-code-side-line-del {
+    background-color: rgba(220, 38, 38, 0.1);
+}
+.diff-container {
+    margin-top: 1rem;
 }
