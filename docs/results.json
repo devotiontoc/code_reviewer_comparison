@@ -16,7 +16,7 @@
       10,
       0,
       1,
-      2
+      3
     ],
     "findings_by_category": {
       "labels": [
@@ -81,7 +81,7 @@
         274,
         0,
         210,
-        1684
+        1783
       ]
     },
     "suggestion_overlap": [
@@ -389,6 +389,12 @@
         {
           "tool": "BitoAI",
           "comment": "<div>\n<h2>Changelist by <a href=\"https://bito.ai#changelist\">Bito</a></h2>\n<p>This pull request implements the following key changes.</p>\n\n<div>\n<table width=\"100%\">\n<tbody>\n  <tr>\n    <th>Key Change</th>\n    <th>Files Impacted</th>\n  </tr>\n\n<tr>\n<td width=\"30%\">\n    <b>Other Improvements</b> - Module Configuration Update\n</td>\n<td width=\"70%\">\n\n\n<div>\n\n-&nbsp;[`sample_java.iml`](https://github.com/devotiontoc/code_reviewer_comparison/pull/24/files#diff-60f6513224031685ab9c4e60427aac665d9c2284b69e376da3321aa65addedc9) - Added a new module configuration file to define the Java module settings and dependencies.\n</div>\n</td>\n</tr>\n\n<tr>\n<td width=\"30%\">\n    <b>New Feature</b> - New Java Features Implementation\n</td>\n<td width=\"70%\">\n\n\n<div>\n\n-&nbsp;[`DataProcessor.java`](https://github.com/devotiontoc/code_reviewer_comparison/pull/24/files#diff-9c04d852b4a4874188933465f1f772184de419b238ec07e97b23ae4fef85de98) - Introduces data processing methods that concatenate strings and implement sorting and duplication functionalities.\n<div>\n\n-&nbsp;[`Order.java`](https://github.com/devotiontoc/code_reviewer_comparison/pull/24/files#diff-d98d360a1b4c2d8112ab3d5d5ffd3f59f5816125c28132351403cf2a0dd63a58) - Defines a customer order data structure with essential attributes like item details, price, and quantity.\n<div>\n\n-&nbsp;[`OrderProcessingService.java`](https://github.com/devotiontoc/code_reviewer_comparison/pull/24/files#diff-86212c56433423733a34b97a0eb869d52a69a2897eaab6d5c21dab2f276463f2) - Implements order processing logic, including validation and file persistence for processed orders.\n<div>\n\n-&nbsp;[`OrderValidator.java`](https://github.com/devotiontoc/code_reviewer_comparison/pull/24/files#diff-037c25199ef9f13642a5d2709d523218787cc6f9baaa7d7a88115f7e50ff6b42) - Provides order validation logic by checking customer name, price criteria, quantity, and item list conditions.\n<div>\n\n-&nbsp;[`SecurityVulnerableConnector.java`](https://github.com/devotiontoc/code_reviewer_comparison/pull/24/files#diff-e6d8ae1e79bf2178531aa25cd6816bdb0f8267e46e8e19b27220d10e3f029101) - Introduces database connection methods with insecure query construction and token generation that may need review for security implications.\n<div>\n\n-&nbsp;[`UserDataManager.java`](https://github.com/devotiontoc/code_reviewer_comparison/pull/24/files#diff-85824f1c9086a6b26617276612799122200c2fc3673af0583796762ba6541d06) - Manages user list processing, calculates average age, and determines user status based on provided codes.\n</div>\n</td>\n</tr>\n\n</tbody>\n</table>\n</div>\n</div>",
+          "original_code": null,
+          "suggested_code": null
+        },
+        {
+          "tool": "devotiontoc",
+          "comment": "/aggregate",
           "original_code": null,
           "suggested_code": null
         },
