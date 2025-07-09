@@ -52,8 +52,7 @@ function renderCharts(results) {
     // Filter for actual overlaps and sort them to get the most frequent ones
     const allOverlaps = suggestion_overlap.filter(item => item.sets.length > 1).sort((a, b) => b.size - a.size);
 
-    // Limit the chart to the Top 10 to prevent it from growing too large
-    const topOverlaps = allOverlaps.slice(0, 5);
+    const topOverlaps = allOverlaps.slice(0, 3);
 
     if (topOverlaps.length > 0) {
         new Chart(overlapCtx, {
