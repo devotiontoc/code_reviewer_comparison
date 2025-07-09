@@ -11,11 +11,12 @@ PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
 # Define the login usernames for the AI tools
 TOOL_IDENTIFIERS = {
     'CodeRabbit': 'coderabbitai[bot]',
-    'BitoAI': 'bito-ai-bot',
+    'BitoAI': 'bito-code-review[bot]',
     'Codacy': 'codacy-production[bot]',
-    'GitHub Copilot': 'github-actions[bot]',
+    'GitHub Copilot': 'copilot-pull-request-reviewer[bot]',
     'devotiontoc': 'devotiontoc',
     'Copilot' : 'Copilot'
+
 }
 TOOLS = list(TOOL_IDENTIFIERS.keys())
 KNOWN_BOT_IDS = set(TOOL_IDENTIFIERS.values())
