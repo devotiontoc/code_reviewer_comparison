@@ -6,6 +6,7 @@ from collections import defaultdict
 from itertools import combinations
 import requests
 
+# --- Configuration ---
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = os.environ.get("GITHUB_REPOSITORY")
 PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
@@ -39,19 +40,6 @@ def fetch_github_api(url):
 def parse_iso_timestamp(ts_str):
     return datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
 
-def jaccard_similarity(set1, set2):
-    """Calculates Jaccard similarity between two sets of words."""
-    if not set1 and not set2:
-        return 1.0
-    if not set1 or not set2:
-        return 0.0
-    intersection = set1.intersection(set2)
-    union = set1.union(set2)
-    return len(intersection) / len(union)
-
-def get_words(text):
-    return set(re.findall(r'\w+', text.lower()))
-
 def categorize_comment(comment_text):
     text = comment_text.lower()
     if any(kw in text for kw in ['security', 'vulnerability', 'cve', 'sql injection', 'xss', 'hardcoded secret']):
@@ -66,7 +54,6 @@ def categorize_comment(comment_text):
 def run_aggregation():
     base_api_url = f"https://api.github.com/repos/{REPO_NAME}"
 
-    # 1. Fetch PR data for creation time and all comments/reviews
     pr_data = fetch_github_api(f"{base_api_url}/pulls/{PR_NUMBER}")
     if not pr_data:
         print("Failed to fetch PR data. Aborting.")
@@ -79,7 +66,6 @@ def run_aggregation():
     all_comments = review_comments + review_summaries + issue_comments
     print(f"Successfully fetched a total of {len(all_comments)} comments and review summaries.")
 
-    # 2. Group comments, gather stats, and extract suggestions in a single loop
     findings_map = defaultdict(list)
     comment_lengths = defaultdict(list)
     review_times = defaultdict(list)
@@ -94,17 +80,17 @@ def run_aggregation():
         if not comment_body:
             continue
 
-        # Calculate review speed
-        comment_created_at = parse_iso_timestamp(item['created_at'])
+        timestamp_str = item.get('created_at') or item.get('submitted_at')
+        if not timestamp_str:
+            continue
+        comment_created_at = parse_iso_timestamp(timestamp_str)
         time_to_comment = (comment_created_at - pr_created_at).total_seconds()
         review_times[current_tool].append(time_to_comment)
 
-        # Extract code suggestions and original code from diff hunk
         original_code, suggested_code = None, None
         suggestion_match = re.search(r"```suggestion\r?\n(.*?)\r?\n```", comment_body, re.DOTALL)
         if suggestion_match:
             suggested_code = suggestion_match.group(1)
-            # Clean original code from the diff hunk for better presentation
             if 'diff_hunk' in item:
                 original_code_lines = [line[1:] for line in item['diff_hunk'].split('\n') if line.startswith('-') and not line.startswith('---')]
                 original_code = '\n'.join(original_code_lines)
@@ -114,14 +100,10 @@ def run_aggregation():
         finding_key = f"{file_path}:{line}" if file_path and line else "General PR Summary"
 
         findings_map[finding_key].append({
-            "tool": current_tool,
-            "comment": comment_body,
-            "original_code": original_code,
-            "suggested_code": suggested_code
+            "tool": current_tool, "comment": comment_body, "original_code": original_code, "suggested_code": suggested_code
         })
         comment_lengths[current_tool].append(len(comment_body))
 
-    # 3. Process grouped findings for overlap and final structure
     processed_findings = []
     category_counts = defaultdict(int)
     tool_finding_counts = defaultdict(int)
@@ -129,21 +111,15 @@ def run_aggregation():
     overlap_counts = defaultdict(int)
 
     for location, reviews in findings_map.items():
-        # A) Calculate Overlap
+        # --- START: Simplified Overlap Logic ---
+        # An overlap is now any time two different tools comment on the same location.
         review_tools = {review['tool'] for review in reviews}
         if len(review_tools) > 1:
-            # Compare all pairs of reviews at this location
-            for r1, r2 in combinations(reviews, 2):
-                if r1['tool'] == r2['tool']: continue
+            # Get all unique pairs of tools that commented here
+            for tool_pair in combinations(sorted(list(review_tools)), 2):
+                overlap_counts[tool_pair] += 1
+        # --- END: Simplified Overlap Logic ---
 
-                comment1_words = get_words(r1['comment'])
-                comment2_words = get_words(r2['comment'])
-                if jaccard_similarity(comment1_words, comment2_words) > 0.4:
-                    # Found a meaningful overlap
-                    overlap_key = tuple(sorted([r1['tool'], r2['tool']]))
-                    overlap_counts[overlap_key] += 1
-
-        # B) Aggregate other stats and build final finding structure
         all_comments_text = " ".join([r['comment'] for r in reviews])
         category = categorize_comment(all_comments_text)
         category_counts[category] += 1
@@ -156,31 +132,32 @@ def run_aggregation():
             tool_finding_counts[review['tool']] += 1
 
         processed_findings.append({
-            "location": location,
-            "category": category,
-            "reviews": reviews
+            "location": location, "category": category, "reviews": reviews
         })
 
-    # 4. Finalize stats for charts
-    # Average comment length
-    avg_comment_lengths = [round(sum(lengths) / len(lengths)) if lengths else 0 for tool, lengths in comment_lengths.items()]
-    # Average review time
-    avg_review_times_seconds = [round(sum(times) / len(times)) if times else 0 for tool, times in review_times.items()]
-    # Format overlap data for the venn diagram library
+    def get_avg(data_dict, key):
+        items = data_dict.get(key, [])
+        return round(sum(items) / len(items)) if items else 0
+
+    avg_comment_lengths = [get_avg(comment_lengths, tool) for tool in TOOLS]
+    avg_review_times_seconds = [get_avg(review_times, tool) for tool in TOOLS]
+
     venn_data = []
+    # Add the intersection data first
     for tools_tuple, count in overlap_counts.items():
         venn_data.append({"sets": list(tools_tuple), "size": count})
-    for tool in TOOLS:
-        # Add counts for findings unique to each tool
-        venn_data.append({"sets": [tool], "size": tool_finding_counts.get(tool, 0) - sum(c for t, c in overlap_counts.items() if tool in t)})
 
-    # 5. Assemble final JSON output
+    # Then add the data for findings unique to each tool
+    for tool in TOOLS:
+        total_for_tool = tool_finding_counts.get(tool, 0)
+        overlapped_for_tool = sum(count for a_tuple, count in overlap_counts.items() if tool in a_tuple)
+        unique_count = total_for_tool - overlapped_for_tool
+
+        if unique_count > 0:
+            venn_data.append({"sets": [tool], "size": unique_count})
+
     final_output = {
-        "metadata": {
-            "repo": REPO_NAME,
-            "pr_number": int(PR_NUMBER),
-            "tool_names": TOOLS
-        },
+        "metadata": {"repo": REPO_NAME, "pr_number": int(PR_NUMBER), "tool_names": TOOLS},
         "summary_charts": {
             "findings_by_tool": [tool_finding_counts.get(tool, 0) for tool in TOOLS],
             "findings_by_category": {"labels": list(category_counts.keys()), "data": list(category_counts.values())},
@@ -192,13 +169,11 @@ def run_aggregation():
         "findings": processed_findings
     }
 
-    # 6. Save results to a file
     output_path = 'docs/results.json'
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w') as f:
         json.dump(final_output, f, indent=2)
     print(f"Aggregation complete. Results saved to {output_path}")
-
 
 if __name__ == "__main__":
     if not all([GITHUB_TOKEN, REPO_NAME, PR_NUMBER]):
