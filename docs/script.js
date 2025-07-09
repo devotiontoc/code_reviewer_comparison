@@ -21,11 +21,11 @@ function renderCharts(results) {
         findings_by_category,
         comment_verbosity,
         findings_by_file,
-        review_speed, // New data for charts
-        suggestion_overlap // New data for charts
+        review_speed,
+        suggestion_overlap
     } = results.summary_charts;
 
-    const COLORS = ['#38BDF8', '#F472B6', '#A78BFA', '#34D399', '#FBBF24'];
+    const COLORS = ['#38BDF8', '#F472B6', '#A78BFA', '#34D399', '#FBBF24', '#F87171'];
 
     // --- Existing Charts ---
     new Chart(document.getElementById('findingsByToolChart').getContext('2d'), {
@@ -50,7 +50,7 @@ function renderCharts(results) {
             datasets: [{
                 label: 'Average Time to Comment (seconds)',
                 data: review_speed.data,
-                backgroundColor: '#FBBF24', // Yellow
+                backgroundColor: '#FBBF24',
             }]
         },
         options: {
@@ -60,20 +60,31 @@ function renderCharts(results) {
         }
     });
 
-    // --- New Chart 2: Suggestion Overlap ---
+    // --- START: FIXED VENN DIAGRAM LOGIC ---
     const suggestionOverlapCtx = document.getElementById('suggestionOverlapChart').getContext('2d');
-    new Chart(suggestionOverlapCtx, {
-        type: 'venn', // Using the 'venn' type from the chartjs-chart-venn plugin
-        data: {
-            labels: tool_names,
-            datasets: [{
-                data: suggestion_overlap,
-                backgroundColor: COLORS.map(c => `${c}80`), // Use semi-transparent colors
-                borderColor: COLORS,
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
+    // Check if there is at least one entry with an overlap (more than one tool in the set)
+    const hasOverlaps = suggestion_overlap.some(item => item.sets.length > 1);
+
+    if (hasOverlaps) {
+        // If overlaps exist, render the Venn diagram
+        new Chart(suggestionOverlapCtx, {
+            type: 'venn',
+            data: {
+                labels: tool_names,
+                datasets: [{
+                    data: suggestion_overlap,
+                    backgroundColor: COLORS.map(c => `${c}80`), // Use semi-transparent colors
+                    borderColor: COLORS,
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    } else {
+        // If no overlaps, display a message instead of the chart
+        const chartContainer = suggestionOverlapCtx.canvas.parentNode;
+        chartContainer.innerHTML = '<p class="no-data-message">No overlapping findings were detected among the tools.</p>';
+    }
+    // --- END: FIXED VENN DIAGRAM LOGIC ---
 }
 
 function renderFindings(results) {
@@ -93,19 +104,14 @@ function renderFindings(results) {
                 const toolClassName = review.tool.replace(/\s+/g, '-');
                 let diffHTML = '';
 
-                // --- START: New Diff Rendering Logic ---
-                // Check if the finding includes a specific code change to render a diff.
                 if (review.original_code && review.suggested_code) {
                     const diffString = `--- a/${finding.location}\n+++ b/${finding.location}\n${review.original_code.split('\n').map(l => `-${l}`).join('\n')}\n${review.suggested_code.split('\n').map(l => `+${l}`).join('\n')}`;
-
-                    // Use the diff2html library to create a side-by-side comparison
                     diffHTML = Diff2Html.html(diffString, {
                         drawFileList: false,
                         matching: 'lines',
                         outputFormat: 'side-by-side'
                     });
                 }
-                // --- END: New Diff Rendering Logic ---
 
                 reviewsHTML += `
                     <div class="tool-review ${toolClassName}">
