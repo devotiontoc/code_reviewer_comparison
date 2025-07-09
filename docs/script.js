@@ -48,6 +48,7 @@ function renderCharts(results) {
 
     // --- START: REPLACEMENT FOR VENN DIAGRAM ---
     const overlapCtx = document.getElementById('suggestionOverlapChart').getContext('2d');
+    // Filter for actual overlaps and sort them to show the most frequent ones on top
     const overlapData = suggestion_overlap.filter(item => item.sets.length > 1).sort((a, b) => b.size - a.size);
 
     if (overlapData.length > 0) {
