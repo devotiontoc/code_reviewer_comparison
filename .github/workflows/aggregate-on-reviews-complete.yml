@@ -2,16 +2,11 @@
 name: Manual Aggregation Trigger
 
 on:
-  # This workflow only runs when a comment is created on an issue or pull request.
   issue_comment:
     types: [created]
 
 jobs:
   aggregate-on-command:
-    # This 'if' condition is the key. It ensures the job ONLY runs if:
-    # 1. The comment is on a pull request.
-    # 2. The comment body is exactly '/aggregate'.
-    # 3. (Optional but recommended) The person who commented is authorized.
     if: |
       github.event.issue.pull_request &&
       github.event.comment.body == '/aggregate'
@@ -23,6 +18,9 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       # Step 1: Add a reaction to the comment to show the job has started
       - name: Acknowledge command
         uses: peter-evans/create-or-update-comment@v4
@@ -37,7 +35,7 @@ jobs:
           # The PR number is available directly from the issue context
           echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
           
-          # We can get the branch name using the GitHub CLI and the PR number
+          # This command will now succeed because the repo is checked out
           branch_name=$(gh pr view ${{ github.event.issue.number }} --json headRefName --jq '.headRefName')
           echo "branch=${branch_name}" >> "$GITHUB_OUTPUT"
         env:
@@ -51,7 +49,7 @@ jobs:
           app_id: ${{ secrets.BOT_APP_ID }}
           private_key: ${{ secrets.BOT_PRIVATE_KEY }}
 
-      # Step 4: Checkout the specific PR branch
+      # Step 4: Checkout the specific PR branch (this is still needed)
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
