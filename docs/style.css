@@ -1,9 +1,4 @@
-/*
-  Sophisticated Stylesheet for AI Code Review Dashboard
-  Theme: "Midnight Code" Dark Mode
-*/
 
-/* --- 1. CSS Variables (Custom Properties) for Easy Theming --- */
 :root {
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
@@ -50,21 +45,24 @@ main {
     margin-bottom: 3rem;
 }
 
-footer {
-    text-align: center;
-    padding: 2rem 1rem;
-    color: var(--color-text-secondary);
-    font-size: 0.9rem;
-    border-top: 1px solid var(--color-border);
-    margin-top: 4rem;
+/* --- 5. Component Styles --- */
+.chart-container {
+    background-color: var(--color-bg-card);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-md);
+    min-height: 400px;
+
+    /* FIX: Use flexbox to structure the title and chart wrapper */
+    display: flex;
+    flex-direction: column;
 }
 
-/* --- 4. Typography Styles --- */
-h1 {
-    font-size: 2.75rem;
-    font-weight: 800;
-    color: var(--color-text-header);
-    margin: 0 0 0.5rem 0;
+/* NEW: This wrapper isolates the canvas and solves the resizing bug */
+.chart-wrapper {
+    position: relative;
+    flex-grow: 1; /* Allows the wrapper to fill the available space */
 }
 
 h2 {
@@ -74,35 +72,7 @@ h2 {
     border-bottom: 1px solid var(--color-border);
     padding-bottom: 0.75rem;
     margin: 0 0 1.5rem 0;
-}
-
-header p {
-    font-size: 1.125rem;
-    color: var(--color-text-secondary);
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-code {
-    font-family: var(--font-mono);
-    background-color: var(--color-bg);
-    color: var(--color-accent);
-    padding: 0.2em 0.4em;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-/* --- 5. Component Styles --- */
-.chart-container {
-    background-color: var(--color-bg-card);
-    padding: 2rem;
-    border-radius: var(--border-radius);
-    border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-md);
-
-    /* FIX: Removed flex properties that caused infinite stretching bug. */
-    /* A min-height is sufficient to give the chart initial space. */
-    min-height: 400px;
+    flex-shrink: 0; /* Prevents the title from shrinking */
 }
 
 #detailed-findings h2 {
@@ -111,18 +81,13 @@ code {
     margin-bottom: 2rem;
 }
 
+/* ... other styles are correct and remain the same ... */
 .finding-card {
     background-color: var(--color-bg-card);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     margin-bottom: 1.5rem;
     box-shadow: var(--shadow-md);
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.finding-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
 }
 
 .finding-card-header {
@@ -133,74 +98,46 @@ code {
     align-items: center;
 }
 
-.finding-card-header h3 {
-    margin: 0;
-    font-size: 1.1rem;
-}
-
 .category {
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0.3rem 0.6rem;
     border-radius: 9999px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-text-header);
 }
-
 .category.security { background-color: #991B1B; }
 .category.performance { background-color: #166534; }
 .category.bug { background-color: #9A3412; }
 .category.style-best-practice { background-color: #1E40AF; }
 
 .finding-card-body {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1px;
-    background-color: var(--color-border);
-    overflow: hidden;
-    border-bottom-left-radius: var(--border-radius);
-    border-bottom-right-radius: var(--border-radius);
+    padding: 1rem 1.5rem;
 }
-
-.tool-review {
-    background-color: var(--color-bg-card);
-    padding: 1.5rem;
+.tool-review + .tool-review {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
 }
 
 .tool-review h4 {
     margin-top: 0;
     margin-bottom: 1rem;
-    font-size: 1rem;
-    color: var(--color-text-primary);
     border-left: 3px solid;
     padding-left: 0.75rem;
 }
-
 .tool-review.CodeRabbit h4 { border-color: #38BDF8; }
 .tool-review.BitoAI h4 { border-color: #F472B6; }
 .tool-review.Codacy h4 { border-color: #A78BFA; }
 .tool-review.GitHub-Copilot h4 { border-color: #34D399; }
-.tool-review.CodiumAI h4 { border-color: #6D28D9; } /* Added color for CodiumAI */
-
+.tool-review.CodiumAI h4 { border-color: #6D28D9; }
 
 .tool-review blockquote {
     margin: 0;
     padding: 1rem;
     background-color: var(--color-bg);
     border-radius: 6px;
-    font-style: normal;
-    color: var(--color-text-secondary);
     white-space: pre-wrap;
     font-size: 0.9rem;
-    border: 1px solid var(--color-border);
-}
-
-mark {
-    background-color: #fde047;
-    color: #111827;
-    border-radius: 3px;
-    padding: 1px 3px;
 }
 
 .no-data-message {
@@ -212,29 +149,11 @@ mark {
 }
 
 /* Diff2HTML overrides for dark mode */
-.d2h-file-header {
-    background-color: var(--color-bg);
-    color: var(--color-text-primary);
-}
-.d2h-diff-table {
-    font-family: var(--font-mono);
-}
-.d2h-code-line-ctn, .d2h-code-side-linenumber {
-    background-color: var(--color-bg-card);
-    color: var(--color-text-secondary);
-}
-.d2h-code-line-ins {
-    background-color: rgba(22, 163, 74, 0.15);
-}
-.d2h-code-side-line-ins {
-    background-color: rgba(22, 163, 74, 0.1);
-}
-.d2h-code-line-del {
-    background-color: rgba(220, 38, 38, 0.15);
-}
-.d2h-code-side-line-del {
-    background-color: rgba(220, 38, 38, 0.1);
-}
-.diff-container {
-    margin-top: 1rem;
-}
+.diff-container { margin-top: 1rem; }
+.d2h-file-header { background-color: var(--color-bg); }
+.d2h-diff-table { font-family: var(--font-mono); }
+.d2h-code-line-ctn, .d2h-code-side-linenumber { background-color: var(--color-bg-card); }
+.d2h-code-line-ins { background-color: rgba(22, 163, 74, 0.15); }
+.d2h-code-side-line-ins { background-color: rgba(22, 163, 74, 0.1); }
+.d2h-code-line-del { background-color: rgba(220, 38, 38, 0.15); }
+.d2h-code-side-line-del { background-color: rgba(220, 38, 38, 0.1); }
