@@ -27,7 +27,7 @@ function renderCharts(results) {
 
     const COLORS = ['#38BDF8', '#F472B6', '#A78BFA', '#34D399', '#FBBF24', '#F87171'];
 
-    // --- Existing Charts ---
+    // --- Other Charts (unchanged) ---
     new Chart(document.getElementById('findingsByToolChart').getContext('2d'), {
         type: 'bar', data: { labels: tool_names, datasets: [{ label: 'Number of Findings', data: findings_by_tool, backgroundColor: COLORS }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
     });
@@ -40,51 +40,45 @@ function renderCharts(results) {
     new Chart(document.getElementById('commentVerbosityChart').getContext('2d'), {
         type: 'bar', data: { labels: comment_verbosity.labels, datasets: [{ label: 'Average Characters per Comment', data: comment_verbosity.data, backgroundColor: '#34D399' }] }, options: { responsive: true, plugins: { legend: { display: false } } }
     });
-
-    // --- New Chart 1: Review Speed ---
-    const reviewSpeedCtx = document.getElementById('reviewSpeedChart').getContext('2d');
-    new Chart(reviewSpeedCtx, {
+    new Chart(document.getElementById('reviewSpeedChart').getContext('2d'), {
         type: 'bar',
-        data: {
-            labels: review_speed.labels,
-            datasets: [{
-                label: 'Average Time to Comment (seconds)',
-                data: review_speed.data,
-                backgroundColor: '#FBBF24',
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} seconds` } } },
-            scales: { y: { ticks: { callback: value => `${value} s` } } }
-        }
+        data: { labels: review_speed.labels, datasets: [{ label: 'Average Time to Comment (seconds)', data: review_speed.data, backgroundColor: '#FBBF24', }] },
+        options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} seconds` } } }, scales: { y: { ticks: { callback: value => `${value} s` } } } }
     });
 
-    // --- START: FIXED VENN DIAGRAM LOGIC ---
-    const suggestionOverlapCtx = document.getElementById('suggestionOverlapChart').getContext('2d');
-    // Check if there is at least one entry with an overlap (more than one tool in the set)
-    const hasOverlaps = suggestion_overlap.some(item => item.sets.length > 1);
+    // --- START: FINAL FIX FOR OVERLAP CHART ---
+    const overlapCtx = document.getElementById('suggestionOverlapChart').getContext('2d');
 
-    if (hasOverlaps) {
-        // If overlaps exist, render the Venn diagram
-        new Chart(suggestionOverlapCtx, {
-            type: 'venn',
+    // Filter for actual overlaps and sort them to get the most frequent ones
+    const allOverlaps = suggestion_overlap.filter(item => item.sets.length > 1).sort((a, b) => b.size - a.size);
+
+    // Limit the chart to the Top 10 to prevent it from growing too large
+    const topOverlaps = allOverlaps.slice(0, 5);
+
+    if (topOverlaps.length > 0) {
+        new Chart(overlapCtx, {
+            type: 'bar',
             data: {
-                labels: tool_names,
+                labels: topOverlaps.map(d => d.sets.join(' & ')),
                 datasets: [{
-                    data: suggestion_overlap,
-                    backgroundColor: COLORS.map(c => `${c}80`), // Use semi-transparent colors
-                    borderColor: COLORS,
+                    label: 'Overlapping Findings',
+                    data: topOverlaps.map(d => d.size),
+                    backgroundColor: '#F87171' // Red
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                indexAxis: 'y', // This makes the bar chart horizontal
+                responsive: true,
+                maintainAspectRatio: false, // Allows chart to fit the container's height
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
         });
     } else {
-        // If no overlaps, display a message instead of the chart
-        const chartContainer = suggestionOverlapCtx.canvas.parentNode;
+        const chartContainer = overlapCtx.canvas.parentNode;
         chartContainer.innerHTML = '<p class="no-data-message">No overlapping findings were detected among the tools.</p>';
     }
-    // --- END: FIXED VENN DIAGRAM LOGIC ---
+    // --- END: FINAL FIX FOR OVERLAP CHART ---
 }
 
 function renderFindings(results) {
@@ -97,13 +91,11 @@ function renderFindings(results) {
     results.findings.forEach(finding => {
         const card = document.createElement('div');
         card.className = 'finding-card';
-
         let reviewsHTML = '';
         if (Array.isArray(finding.reviews)) {
             finding.reviews.forEach(review => {
                 const toolClassName = review.tool.replace(/\s+/g, '-');
                 let diffHTML = '';
-
                 if (review.original_code && review.suggested_code) {
                     const diffString = `--- a/${finding.location}\n+++ b/${finding.location}\n${review.original_code.split('\n').map(l => `-${l}`).join('\n')}\n${review.suggested_code.split('\n').map(l => `+${l}`).join('\n')}`;
                     diffHTML = Diff2Html.html(diffString, {
@@ -112,36 +104,25 @@ function renderFindings(results) {
                         outputFormat: 'side-by-side'
                     });
                 }
-
                 reviewsHTML += `
                     <div class="tool-review ${toolClassName}">
                         <h4>${review.tool}</h4>
                         <blockquote>${escapeHtml(review.comment)}</blockquote>
                         ${diffHTML ? `<div class="diff-container">${diffHTML}</div>` : ''}
-                    </div>
-                `;
+                    </div>`;
             });
         }
-
         card.innerHTML = `
             <div class="finding-card-header">
                 <h3><code>${finding.location}</code></h3>
                 <span class="category ${finding.category.toLowerCase().replace(/ /g, '-')}">${finding.category}</span>
             </div>
-            <div class="finding-card-body">${reviewsHTML}</div>
-        `;
+            <div class="finding-card-body">${reviewsHTML}</div>`;
         container.appendChild(card);
     });
 }
 
 function escapeHtml(unsafe) {
-    if (typeof unsafe !== 'string') {
-        return '';
-    }
-    return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    if (typeof unsafe !== 'string') { return ''; }
+    return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }

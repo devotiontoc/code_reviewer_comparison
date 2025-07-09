@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Automated Code Review Dashboard</title>
-
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css">
 </head>
 <body>
 <header>
     <h1>Automated Code Review Dashboard</h1>
-    <p>A dynamic aggregation of findings from multiple AI code review tools on any pull request.</p>
+    <p>A dynamic aggregation of findings from multiple AI code review tools on a pull request</p>
 </header>
-
 <main>
     <div class="charts-grid">
         <section class="chart-container">
@@ -37,7 +35,7 @@
             <canvas id="reviewSpeedChart"></canvas>
         </section>
         <section class="chart-container">
-            <h2>Suggestion Overlap</h2>
+            <h2>Top 5 Overlaps by Tool Pair</h2>
             <canvas id="suggestionOverlapChart"></canvas>
         </section>
     </div>
@@ -48,9 +46,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-venn/build/index.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js"></script>
 <script src="script.js"></script>
-
 </body>
 </html>
