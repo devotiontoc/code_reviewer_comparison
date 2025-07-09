@@ -1,4 +1,3 @@
-// docs/script.js
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         const response = await fetch('results.json');
@@ -21,66 +20,59 @@ function renderCharts(results) {
         findings_by_tool,
         findings_by_category,
         comment_verbosity,
-        findings_by_file
+        findings_by_file,
+        review_speed, // New data for charts
+        suggestion_overlap // New data for charts
     } = results.summary_charts;
 
-    // Chart 1: Total Findings by Tool
-    const findingsByToolCtx = document.getElementById('findingsByToolChart').getContext('2d');
-    new Chart(findingsByToolCtx, {
+    const COLORS = ['#38BDF8', '#F472B6', '#A78BFA', '#34D399', '#FBBF24'];
+
+    // --- Existing Charts ---
+    new Chart(document.getElementById('findingsByToolChart').getContext('2d'), {
+        type: 'bar', data: { labels: tool_names, datasets: [{ label: 'Number of Findings', data: findings_by_tool, backgroundColor: COLORS }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+    });
+    new Chart(document.getElementById('findingsByCategoryChart').getContext('2d'), {
+        type: 'doughnut', data: { labels: findings_by_category.labels, datasets: [{ data: findings_by_category.data, backgroundColor: ['#991B1B', '#166534', '#9A3412', '#1E40AF'] }] }, options: { responsive: true }
+    });
+    new Chart(document.getElementById('findingsByFileChart').getContext('2d'), {
+        type: 'bar', data: { labels: findings_by_file.labels, datasets: [{ label: 'Number of Findings', data: findings_by_file.data, backgroundColor: '#A78BFA' }] }, options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+    new Chart(document.getElementById('commentVerbosityChart').getContext('2d'), {
+        type: 'bar', data: { labels: comment_verbosity.labels, datasets: [{ label: 'Average Characters per Comment', data: comment_verbosity.data, backgroundColor: '#34D399' }] }, options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    // --- New Chart 1: Review Speed ---
+    const reviewSpeedCtx = document.getElementById('reviewSpeedChart').getContext('2d');
+    new Chart(reviewSpeedCtx, {
         type: 'bar',
+        data: {
+            labels: review_speed.labels,
+            datasets: [{
+                label: 'Average Time to Comment (seconds)',
+                data: review_speed.data,
+                backgroundColor: '#FBBF24', // Yellow
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} seconds` } } },
+            scales: { y: { ticks: { callback: value => `${value} s` } } }
+        }
+    });
+
+    // --- New Chart 2: Suggestion Overlap ---
+    const suggestionOverlapCtx = document.getElementById('suggestionOverlapChart').getContext('2d');
+    new Chart(suggestionOverlapCtx, {
+        type: 'venn', // Using the 'venn' type from the chartjs-chart-venn plugin
         data: {
             labels: tool_names,
             datasets: [{
-                label: 'Number of Findings',
-                data: findings_by_tool,
-                backgroundColor: ['#38BDF8', '#F472B6', '#A78BFA', '#34D399', '#FBBF24'],
+                data: suggestion_overlap,
+                backgroundColor: COLORS.map(c => `${c}80`), // Use semi-transparent colors
+                borderColor: COLORS,
             }]
         },
-        options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
-    });
-
-    // Chart 2: Findings by Category
-    const findingsByCategoryCtx = document.getElementById('findingsByCategoryChart').getContext('2d');
-    new Chart(findingsByCategoryCtx, {
-        type: 'doughnut',
-        data: {
-            labels: findings_by_category.labels,
-            datasets: [{
-                data: findings_by_category.data,
-                backgroundColor: ['#991B1B', '#166534', '#9A3412', '#1E40AF'],
-            }]
-        },
-        options: { responsive: true }
-    });
-
-    // Chart 3: Findings per File
-    const findingsByFileCtx = document.getElementById('findingsByFileChart').getContext('2d');
-    new Chart(findingsByFileCtx, {
-        type: 'bar',
-        data: {
-            labels: findings_by_file.labels,
-            datasets: [{
-                label: 'Number of Findings',
-                data: findings_by_file.data,
-                backgroundColor: '#A78BFA', // Purple
-            }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } } }
-    });
-
-    // Chart 4: Comment Verbosity
-    const commentVerbosityCtx = document.getElementById('commentVerbosityChart').getContext('2d');
-    new Chart(commentVerbosityCtx, {
-        type: 'bar',
-        data: {
-            labels: comment_verbosity.labels,
-            datasets: [{
-                label: 'Average Characters per Comment',
-                data: comment_verbosity.data,
-                backgroundColor: '#34D399', // Green
-            }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } } }
+        options: { responsive: true, maintainAspectRatio: false }
     });
 }
 
@@ -95,49 +87,35 @@ function renderFindings(results) {
         const card = document.createElement('div');
         card.className = 'finding-card';
 
-        // --- START: New Highlighting Logic ---
-
-        // 1. Find the common words across all reviews for this finding
-        let commonWords = new Set();
-        if (finding.reviews && finding.reviews.length > 1) {
-            // Use the words from the first review as the baseline
-            const baseWords = new Set(finding.reviews[0].comment.toLowerCase().match(/\b(\w+)\b/g));
-
-            // Find the intersection with all subsequent reviews
-            for (let i = 1; i < finding.reviews.length; i++) {
-                const otherWords = new Set(finding.reviews[i].comment.toLowerCase().match(/\b(\w+)\b/g));
-                baseWords.forEach(word => {
-                    if (!otherWords.has(word)) {
-                        baseWords.delete(word);
-                    }
-                });
-            }
-            commonWords = baseWords;
-        }
-
-        // 2. Build the HTML for each review, highlighting the common words
         let reviewsHTML = '';
         if (Array.isArray(finding.reviews)) {
             finding.reviews.forEach(review => {
                 const toolClassName = review.tool.replace(/\s+/g, '-');
-                let highlightedComment = escapeHtml(review.comment); // Always escape first
+                let diffHTML = '';
 
-                if (commonWords.size > 0) {
-                    // Create a regex to find all common words (case-insensitive) and wrap them
-                    const regex = new RegExp(`\\b(${[...commonWords].join('|')})\\b`, 'gi');
-                    highlightedComment = highlightedComment.replace(regex, '<mark>$&</mark>');
+                // --- START: New Diff Rendering Logic ---
+                // Check if the finding includes a specific code change to render a diff.
+                if (review.original_code && review.suggested_code) {
+                    const diffString = `--- a/${finding.location}\n+++ b/${finding.location}\n${review.original_code.split('\n').map(l => `-${l}`).join('\n')}\n${review.suggested_code.split('\n').map(l => `+${l}`).join('\n')}`;
+
+                    // Use the diff2html library to create a side-by-side comparison
+                    diffHTML = Diff2Html.html(diffString, {
+                        drawFileList: false,
+                        matching: 'lines',
+                        outputFormat: 'side-by-side'
+                    });
                 }
+                // --- END: New Diff Rendering Logic ---
 
                 reviewsHTML += `
                     <div class="tool-review ${toolClassName}">
                         <h4>${review.tool}</h4>
-                        <blockquote>${highlightedComment}</blockquote>
+                        <blockquote>${escapeHtml(review.comment)}</blockquote>
+                        ${diffHTML ? `<div class="diff-container">${diffHTML}</div>` : ''}
                     </div>
                 `;
             });
         }
-
-        // --- END: New Highlighting Logic ---
 
         card.innerHTML = `
             <div class="finding-card-header">

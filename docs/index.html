@@ -6,10 +6,7 @@
     <title>Automated Code Review Dashboard</title>
 
     <link rel="stylesheet" href="style.css">
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/diff@5.1.0/dist/diff.min.js"></script>
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css">
 </head>
 <body>
 <header>
@@ -18,31 +15,42 @@
 </header>
 
 <main>
-        <div class="charts-grid">
-            <section class="chart-container">
-                <h2>Total Findings by Tool</h2>
-                <canvas id="findingsByToolChart"></canvas>
-            </section>
-            <section class="chart-container">
-                <h2>Findings by Category</h2>
-                <canvas id="findingsByCategoryChart"></canvas>
-            </section>
-
-            <section class="chart-container">
-                <h2>Findings per File</h2>
-                <canvas id="findingsByFileChart"></canvas>
-            </section>
-            <section class="chart-container">
-                <h2>Comment Verbosity (Avg. Chars)</h2>
-                <canvas id="commentVerbosityChart"></canvas>
-            </section>
-        </div>
-
-        <section id="detailed-findings">
-            <h2>Consolidated Findings</h2>
+    <div class="charts-grid">
+        <section class="chart-container">
+            <h2>Total Findings by Tool</h2>
+            <canvas id="findingsByToolChart"></canvas>
         </section>
+        <section class="chart-container">
+            <h2>Findings by Category</h2>
+            <canvas id="findingsByCategoryChart"></canvas>
+        </section>
+        <section class="chart-container">
+            <h2>Comment Verbosity (Avg. Chars)</h2>
+            <canvas id="commentVerbosityChart"></canvas>
+        </section>
+        <section class="chart-container">
+            <h2>Findings per File</h2>
+            <canvas id="findingsByFileChart"></canvas>
+        </section>
+        <section class="chart-container">
+            <h2>Avg. Review Speed</h2>
+            <canvas id="reviewSpeedChart"></canvas>
+        </section>
+        <section class="chart-container">
+            <h2>Suggestion Overlap</h2>
+            <canvas id="suggestionOverlapChart"></canvas>
+        </section>
+    </div>
+
+    <section id="detailed-findings">
+        <h2>Consolidated Findings</h2>
+    </section>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-venn/build/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js"></script>
 <script src="script.js"></script>
+
 </body>
 </html>
