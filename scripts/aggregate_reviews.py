@@ -11,13 +11,14 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 REPO_NAME = os.environ.get("GITHUB_REPOSITORY")
 PR_NUMBER = os.environ.get("PULL_REQUEST_NUMBER")
 
-´
+# Using standard single quotes for all strings
 TOOL_IDENTIFIERS = {
     'CodeRabbit': 'coderabbitai[bot]',
     'BitoAI': 'bito-code-review[bot]',
     'Codacy': 'codacy-production[bot]',
     'GitHub Copilot': 'copilot-pull-request-reviewer[bot]',
     'devotiontoc': 'devotiontoc'
+
 }
 
 TOOLS = list(TOOL_IDENTIFIERS.keys())
@@ -138,7 +139,6 @@ def run_aggregation():
     avg_comment_lengths = [get_avg(comment_lengths, tool) for tool in TOOLS]
     avg_review_times_seconds = [get_avg(review_times, tool) for tool in TOOLS]
 
-    # This data is now used for the new bar chart instead of the Venn diagram
     overlap_data_for_json = [{"sets": list(tools_tuple), "size": count} for tools_tuple, count in overlap_counts.items()]
 
     final_output = {
