@@ -40,19 +40,6 @@ def fetch_github_api(url):
 def parse_iso_timestamp(ts_str):
     return datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
 
-def jaccard_similarity(set1, set2):
-    """Calculates Jaccard similarity between two sets of words."""
-    if not set1 and not set2:
-        return 1.0
-    if not set1 or not set2:
-        return 0.0
-    intersection = set1.intersection(set2)
-    union = set1.union(set2)
-    return len(intersection) / len(union)
-
-def get_words(text):
-    return set(re.findall(r'\w+', text.lower()))
-
 def categorize_comment(comment_text):
     text = comment_text.lower()
     if any(kw in text for kw in ['security', 'vulnerability', 'cve', 'sql injection', 'xss', 'hardcoded secret']):
@@ -124,16 +111,14 @@ def run_aggregation():
     overlap_counts = defaultdict(int)
 
     for location, reviews in findings_map.items():
+        # --- START: Simplified Overlap Logic ---
+        # An overlap is now any time two different tools comment on the same location.
         review_tools = {review['tool'] for review in reviews}
         if len(review_tools) > 1:
-            for r1, r2 in combinations(reviews, 2):
-                if r1['tool'] == r2['tool']: continue
-
-                comment1_words = get_words(r1['comment'])
-                comment2_words = get_words(r2['comment'])
-                if jaccard_similarity(comment1_words, comment2_words) > 0.4:
-                    overlap_key = tuple(sorted([r1['tool'], r2['tool']]))
-                    overlap_counts[overlap_key] += 1
+            # Get all unique pairs of tools that commented here
+            for tool_pair in combinations(sorted(list(review_tools)), 2):
+                overlap_counts[tool_pair] += 1
+        # --- END: Simplified Overlap Logic ---
 
         all_comments_text = " ".join([r['comment'] for r in reviews])
         category = categorize_comment(all_comments_text)
@@ -150,22 +135,24 @@ def run_aggregation():
             "location": location, "category": category, "reviews": reviews
         })
 
-    # --- START: FIXED DATA ALIGNMENT ---
-    # Helper to calculate average, ensuring alignment with the TOOLS list
     def get_avg(data_dict, key):
         items = data_dict.get(key, [])
         return round(sum(items) / len(items)) if items else 0
 
-    # Build data lists by iterating over the canonical TOOLS list to guarantee order
     avg_comment_lengths = [get_avg(comment_lengths, tool) for tool in TOOLS]
     avg_review_times_seconds = [get_avg(review_times, tool) for tool in TOOLS]
-    # --- END: FIXED DATA ALIGNMENT ---
 
     venn_data = []
+    # Add the intersection data first
     for tools_tuple, count in overlap_counts.items():
         venn_data.append({"sets": list(tools_tuple), "size": count})
+
+    # Then add the data for findings unique to each tool
     for tool in TOOLS:
-        unique_count = tool_finding_counts.get(tool, 0) - sum(c for t, c in overlap_counts.items() if tool in t)
+        total_for_tool = tool_finding_counts.get(tool, 0)
+        overlapped_for_tool = sum(count for a_tuple, count in overlap_counts.items() if tool in a_tuple)
+        unique_count = total_for_tool - overlapped_for_tool
+
         if unique_count > 0:
             venn_data.append({"sets": [tool], "size": unique_count})
 
