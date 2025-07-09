@@ -49,7 +49,8 @@ main {
 
 .charts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    /* FIX: Reduced the minimum width to be mobile-friendly. */
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 1.5rem;
     margin-bottom: 3rem;
 }
@@ -103,6 +104,10 @@ code {
     border-radius: var(--border-radius);
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-md);
+
+    /* FIX: Replaced fixed height with a responsive aspect-ratio. */
+    height: auto;
+    aspect-ratio: 4 / 3;
 }
 
 #detailed-findings h2 {
@@ -178,11 +183,11 @@ code {
     padding-left: 0.75rem;
 }
 
-/* Tool-specific accent colors */
+/* Tool-specific accent colors (with corrected class names) */
 .tool-review.CodeRabbit h4 { border-color: #38BDF8; } /* Bright Blue */
 .tool-review.BitoAI h4 { border-color: #F472B6; } /* Pink */
-.tool_review.Codacy h4 { border-color: #A78BFA; } /* Purple */
-.tool_review.GitHub-Copilot h4 { border-color: #34D399; } /* Green */
+.tool-review.Codacy h4 { border-color: #A78BFA; } /* Purple */
+.tool-review.GitHub-Copilot h4 { border-color: #34D399; } /* Green */
 
 .tool-review blockquote {
     margin: 0;
@@ -197,14 +202,16 @@ code {
 }
 
 mark {
-    background-color: #fde047; /* A prominent yellow highlight */
-    color: #111827; /* Dark text for readability on the yellow background */
+    background-color: #fde047;
+    color: #111827;
     border-radius: 3px;
     padding: 1px 3px;
 }
 
-.chart-container {
-    position: relative;
-    height: 400px;
-    width: 100%;
+.no-data-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: var(--color-text-secondary);
 }

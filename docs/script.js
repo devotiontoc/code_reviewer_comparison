@@ -27,58 +27,87 @@ function renderCharts(results) {
 
     const COLORS = ['#38BDF8', '#F472B6', '#A78BFA', '#34D399', '#FBBF24', '#F87171'];
 
-    // --- Other Charts (unchanged) ---
+    // Define common options for all charts to be responsive and styled correctly
+    const commonChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false, // This is crucial for responsive containers
+        plugins: {
+            legend: {
+                display: false,
+                labels: {
+                    color: '#D1D5DB' // Sets legend text color for dark mode
+                }
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: '#9CA3AF' },
+                grid: { color: 'rgba(55, 65, 81, 0.5)' }
+            },
+            y: {
+                ticks: { color: '#9CA3AF' },
+                grid: { color: 'rgba(55, 65, 81, 0.5)' }
+            }
+        }
+    };
+
+    // --- Render all charts with the common responsive options ---
     new Chart(document.getElementById('findingsByToolChart').getContext('2d'), {
-        type: 'bar', data: { labels: tool_names, datasets: [{ label: 'Number of Findings', data: findings_by_tool, backgroundColor: COLORS }] }, options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
+        type: 'bar',
+        data: { labels: tool_names, datasets: [{ label: 'Number of Findings', data: findings_by_tool, backgroundColor: COLORS }] },
+        options: { ...commonChartOptions, indexAxis: 'y' }
     });
+
     new Chart(document.getElementById('findingsByCategoryChart').getContext('2d'), {
-        type: 'doughnut', data: { labels: findings_by_category.labels, datasets: [{ data: findings_by_category.data, backgroundColor: ['#991B1B', '#166534', '#9A3412', '#1E40AF'] }] }, options: { responsive: true }
+        type: 'doughnut',
+        data: { labels: findings_by_category.labels, datasets: [{ data: findings_by_category.data, backgroundColor: ['#991B1B', '#166534', '#9A3412', '#1E40AF'] }] },
+        options: { ...commonChartOptions, plugins: { legend: { display: true, position: 'top' } } } // Override to show legend
     });
+
     new Chart(document.getElementById('findingsByFileChart').getContext('2d'), {
-        type: 'bar', data: { labels: findings_by_file.labels, datasets: [{ label: 'Number of Findings', data: findings_by_file.data, backgroundColor: '#A78BFA' }] }, options: { responsive: true, plugins: { legend: { display: false } } }
+        type: 'bar',
+        data: { labels: findings_by_file.labels, datasets: [{ label: 'Number of Findings', data: findings_by_file.data, backgroundColor: '#A78BFA' }] },
+        options: commonChartOptions
     });
+
     new Chart(document.getElementById('commentVerbosityChart').getContext('2d'), {
-        type: 'bar', data: { labels: comment_verbosity.labels, datasets: [{ label: 'Average Characters per Comment', data: comment_verbosity.data, backgroundColor: '#34D399' }] }, options: { responsive: true, plugins: { legend: { display: false } } }
+        type: 'bar',
+        data: { labels: comment_verbosity.labels, datasets: [{ label: 'Average Characters per Comment', data: comment_verbosity.data, backgroundColor: '#34D399' }] },
+        options: commonChartOptions
     });
+
     new Chart(document.getElementById('reviewSpeedChart').getContext('2d'), {
         type: 'bar',
-        data: { labels: review_speed.labels, datasets: [{ label: 'Average Time to Comment (seconds)', data: review_speed.data, backgroundColor: '#FBBF24', }] },
-        options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} seconds` } } }, scales: { y: { ticks: { callback: value => `${value} s` } } } }
+        data: { labels: review_speed.labels, datasets: [{ label: 'Average Time to Comment (seconds)', data: review_speed.data, backgroundColor: '#FBBF24' }] },
+        options: {
+            ...commonChartOptions,
+            scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, ticks: { ...commonChartOptions.scales.y.ticks, callback: value => `${value} s` } } },
+            plugins: { ...commonChartOptions.plugins, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} seconds` } } }
+        }
     });
 
-    // --- START: FINAL FIX FOR OVERLAP CHART ---
     const overlapCtx = document.getElementById('suggestionOverlapChart').getContext('2d');
-
-    // Filter for actual overlaps and sort them to get the most frequent ones
-    const allOverlaps = suggestion_overlap.filter(item => item.sets.length > 1).sort((a, b) => b.size - a.size);
-
-    const topOverlaps = allOverlaps.slice(0, 3);
+    const topOverlaps = suggestion_overlap.filter(item => item.sets.length > 1).sort((a, b) => b.size - a.size).slice(0, 3);
 
     if (topOverlaps.length > 0) {
         new Chart(overlapCtx, {
             type: 'bar',
             data: {
                 labels: topOverlaps.map(d => d.sets.join(' & ')),
-                datasets: [{
-                    label: 'Overlapping Findings',
-                    data: topOverlaps.map(d => d.size),
-                    backgroundColor: '#F87171' // Red
-                }]
+                datasets: [{ label: 'Overlapping Findings', data: topOverlaps.map(d => d.size), backgroundColor: '#F87171' }]
             },
             options: {
-                indexAxis: 'y', // This makes the bar chart horizontal
-                responsive: true,
-                maintainAspectRatio: false, // Allows chart to fit the container's height
-                plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                ...commonChartOptions,
+                indexAxis: 'y',
+                scales: { ...commonChartOptions.scales, x: { ...commonChartOptions.scales.x, ticks: { ...commonChartOptions.scales.x.ticks, stepSize: 1 } } }
             }
         });
     } else {
         const chartContainer = overlapCtx.canvas.parentNode;
-        chartContainer.innerHTML = '<p class="no-data-message">No overlapping findings were detected among the tools.</p>';
+        chartContainer.innerHTML = '<p class="no-data-message">No overlapping findings were detected.</p>';
     }
-    // --- END: FINAL FIX FOR OVERLAP CHART ---
 }
+
 
 function renderFindings(results) {
     const container = document.getElementById('detailed-findings');

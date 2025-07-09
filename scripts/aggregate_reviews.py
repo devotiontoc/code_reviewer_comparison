@@ -61,11 +61,36 @@ def run_aggregation():
         return
     pr_created_at = parse_iso_timestamp(pr_data['created_at'])
 
+    # Fetch all types of comments
     review_comments = fetch_github_api(f"{base_api_url}/pulls/{PR_NUMBER}/comments") or []
-    review_summaries = fetch_github_api(f"{base_api_url}/pulls/{PR_NUMBER}/reviews") or []
     issue_comments = fetch_github_api(f"{base_api_url}/issues/{PR_NUMBER}/comments") or []
-    all_comments = review_comments + review_summaries + issue_comments
-    print(f"Successfully fetched a total of {len(all_comments)} comments and review summaries.")
+
+    # Reviews can contain comments, so we process them to extract those comments
+    reviews = fetch_github_api(f"{base_api_url}/pulls/{PR_NUMBER}/reviews") or []
+
+    all_comments = review_comments + issue_comments
+
+    # A dictionary to hold all comments, keyed by their ID to avoid duplicates
+    comment_map = {item['id']: item for item in all_comments}
+
+    # Process reviews to extract their body as a "General PR Summary"
+    # and to ensure their associated comments are fetched.
+    for review in reviews:
+        # Add the main review body as a general comment if it exists
+        if review.get('body'):
+            # To make it compatible with the loop below, we can add it to our list.
+            # We give it a unique identifier to avoid clashes.
+            review_as_comment = review.copy()
+            review_as_comment['id'] = f"review-{review['id']}" # Create a unique ID
+            comment_map[review_as_comment['id']] = review_as_comment
+
+        # A single review can have multiple associated line comments.
+        # The /pulls/{pr}/comments endpoint should already contain these.
+        # If not, you would fetch them from the review's `_links['pull_request_comments']['href']`
+        # But for simplicity, let's assume the initial fetch is sufficient and the problem is in processing.
+
+    all_comments = list(comment_map.values())
+    print(f"Successfully fetched and de-duplicated a total of {len(all_comments)} comments and review summaries.")
 
     findings_map = defaultdict(list)
     comment_lengths = defaultdict(list)
@@ -81,7 +106,8 @@ def run_aggregation():
         if not comment_body:
             continue
 
-        timestamp_str = item.get('created_at') or item.get('submitted_at')
+        # Use submitted_at for reviews, created_at for other comments
+        timestamp_str = item.get('submitted_at') or item.get('created_at')
         if not timestamp_str:
             continue
         comment_created_at = parse_iso_timestamp(timestamp_str)
@@ -97,7 +123,15 @@ def run_aggregation():
                 original_code = '\n'.join(original_code_lines)
 
         file_path = item.get('path')
+        # Use 'line' for top-level comments, and 'start_line' might be relevant for reviews covering multiple lines
         line = item.get('line') or item.get('start_line')
+
+        # If a comment is a reply, it might be better to associate it with its parent's location
+        if item.get('in_reply_to_id'):
+            # For simplicity in this fix, we'll still treat it as a separate finding at the same location.
+            # A more advanced implementation might group them.
+            pass
+
         finding_key = f"{file_path}:{line}" if file_path and line else "General PR Summary"
 
         findings_map[finding_key].append({
